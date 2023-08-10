@@ -16,12 +16,15 @@ const processor = new SubstrateBatchProcessor()
     .setDataSource({
         archive: lookupArchive("shibuya", { release: "FireSquid" })
     })
+    .setBlockRange({
+        from: 4390511,
+    })
     .addContractsContractEmitted(CONTRACT_ADDRESS, {
         data: {
             event: {args: true}
         }
     } as const)
- 
+    
 type Item = BatchProcessorItem<typeof processor>
 type Ctx = BatchContext<Store, Item>
  
