@@ -10,7 +10,8 @@ import { Store, TypeormDatabase } from "@subsquid/typeorm-store";
 import { In } from "typeorm";
 import * as multisig_factory from "./abi/multisig_factory";
 import * as multisig from "./abi/multisig";
-import { Multisig, MultisigFactory } from "./model";
+import { Multisig, MultisigFactory, Transaction, TransactionStatus } from "./model";
+import {assertNotNull} from '@subsquid/substrate-processor';
 
 function uint8ArrayToHexString(uint8Array: Uint8Array): string {
   return (
@@ -48,18 +49,25 @@ interface MultisigRecord {
 
 interface TransactionRecord {
   id: string;
-  multisigId: string;
-  createdBy: string;
-  creationTimestamp: Date;
-  creationBlockNumber: number;
-  status: string;
-  method: string;
+  multisig: string;
+  txId: bigint;
+  contractAddress: string;
+  selector: string;
   args: string;
+  value: bigint;
+  status: TransactionStatus;
+  error: string;
+  approvalCount: number;
+  rejectionCount: number;
+  lastUpdatedTimestamp: Date;
+  lastUpdatedBlockNumber: number;
 }
 
 //let existingMultisigs: Set<string>;
 let existingMultisigs: Map<string, boolean>; //Map that contains the multisig address and a boolean that indicates if we have the content on multisigData
 const multisigData: { [key: string]: MultisigRecord } = {};
+
+let existingTransactions: Set<string>;
 const transactionData: { [key: string]: TransactionRecord } = {};
 
 processor.run(new TypeormDatabase(), async (ctx) => {
@@ -68,9 +76,6 @@ processor.run(new TypeormDatabase(), async (ctx) => {
       .findBy(Multisig, {})
       .then((m) => new Map(m.map((m) => [m.id, false])));
   }
-
-  let multisigRecords: MultisigRecord[] = [];
-  let transactions: TransactionRecord[] = [];
 
   for (const block of ctx.blocks) {
     for (const item of block.items) {
@@ -83,6 +88,11 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             const multisigAddress = ss58
               .codec(SS58_PREFIX)
               .encode(event.multisigAddress);
+
+            // Add to map
+            existingMultisigs.set(multisigAddress, true);
+
+            // Add to object
             multisigData[multisigAddress] = {
               id: item.event.id,
               address: multisigAddress,
@@ -100,7 +110,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
           const event = multisig.decodeEvent(item.event.args.data);
           if (event.__kind === "ThresholdChanged") {
             // If multisigData doesn't have this multisig, it means that we need to fetch it from the DB
-            if (existingMultisigs.get(contractAddress) === false) {
+            if (!existingMultisigs.get(contractAddress)) {
               multisigData[contractAddress] = (
                 await ctx.store.findBy(Multisig, { id: In([contractAddress]) })
               )[0]; //This must exist and be unique
@@ -149,18 +159,50 @@ processor.run(new TypeormDatabase(), async (ctx) => {
           if (event.__kind === "TransactionProposed") {
             //Each time a transaction is proposed, we create a new transaction record and also a new approval record for the creator
             const newTransactionId = contractAddress + "-" + event.txId;
+            existingTransactions.add(newTransactionId);
             transactionData[newTransactionId] = {
               id: newTransactionId,
-              multisigId: contractAddress,
-              createdBy: "", //TODO: Event doesn't have this info, maybe modify the event to include it
-              creationTimestamp: new Date(block.header.timestamp),
-              creationBlockNumber: block.header.height,
-              status: "Proposed",
-              method: uint8ArrayToHexString(event.selector),
+              multisig: contractAddress,
+              txId: event.txId,
+              contractAddress: ss58
+                .codec(SS58_PREFIX)
+                .encode(event.contractAddress),
+              selector: uint8ArrayToHexString(event.selector),
               args: uint8ArrayToHexString(event.input),
+              value: event.transferredValue,
+              status: TransactionStatus.PROPOSED,
+              error: "",
+              approvalCount: 1,
+              rejectionCount: 0,
+              lastUpdatedTimestamp: new Date(block.header.timestamp),
+              lastUpdatedBlockNumber: block.header.height,
             };
           }
           if (event.__kind === "TransactionExecuted") {
+            const transactionId = contractAddress + "-" + event.txId;
+            if (!existingTransactions.has(transactionId)) {
+              let dbTx = (
+                await ctx.store.findBy(Transaction, { id: In([transactionId]) })
+              )[0]; //This must exist and be unique
+              transactionData[transactionId] = {
+                id: transactionId,
+                multisig: contractAddress,
+                txId: event.txId,
+                contractAddress: dbTx.contractAddress,
+                selector: dbTx.selector,
+                args: dbTx.args,
+                value: dbTx.value,
+                status: TransactionStatus.EXECUTED_SUCCESS, //TODO HANDLE SUCCESS AND FAILURE
+                error: "", //TODO: Get error from event
+                approvalCount: dbTx.approvalCount,
+                rejectionCount: dbTx.rejectionCount,
+                lastUpdatedTimestamp: new Date(block.header.timestamp),
+                lastUpdatedBlockNumber: block.header.height,
+              };
+
+              // Set map to true to indicate that we have the content on multisigData
+              existingMultisigs.set(contractAddress, true);
+            }
           }
           if (event.__kind === "TransactionRemoved") {
           }
@@ -175,7 +217,8 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     }
   }
 
-  await updateOrCreateMultisigs(ctx, multisigRecords);
+  await updateOrCreateMultisigs(ctx, Object.values(multisigData));
+  await updateOrCreateTransactions(ctx, Object.values(transactionData));
 });
 
 async function updateOrCreateMultisigs(
@@ -194,10 +237,37 @@ async function updateOrCreateMultisigs(
       creationBlockNumber: ms.creationBlockNumber,
     });
 
-    existingMultisigs.add(ms.id);
-
     return multisig;
   });
 
   await ctx.store.save(multisigs);
+}
+
+async function updateOrCreateTransactions(
+  ctx: Ctx,
+  transactions: TransactionRecord[]
+) {
+  let txs: Transaction[] = [];
+
+  txs = transactions.map((tx) => {
+    const transaction = new Transaction({
+      id: tx.id,
+      multisig: tx.multisig,
+      txId: Number(tx.txId),
+      contractAddress: tx.contractAddress,
+      selector: tx.selector,
+      args: tx.args,
+      value: tx.value,
+      status: tx.status,
+      error: tx.error,
+      approvalCount: tx.approvalCount,
+      rejectionCount: tx.rejectionCount,
+      lastUpdatedTimestamp: tx.lastUpdatedTimestamp,
+      lastUpdatedBlockNumber: tx.lastUpdatedBlockNumber,
+    });
+
+    return transaction;
+  });
+
+  await ctx.store.save(txs);
 }

@@ -22,10 +22,10 @@ type Multisig @entity {
   transactions: [Transaction!]! @derivedFrom(field: "multisig")
 }
 
-type Transaction {
+type Transaction @entity {
   id: ID!
   multisig: Multisig!
-  tx_id: Int!
+  txId: Int!
   contractAddress: String!
   selector: String!
   #methodName: String! //TODO: implement
@@ -42,7 +42,7 @@ type Transaction {
   lastUpdatedBlockNumber: Int!
 }
 
-type Approval {
+type Approval @entity {
   id: ID!
   transaction: Transaction!
   approver: String!
@@ -50,7 +50,7 @@ type Approval {
   approvalBlockNumber: Int!
 }
 
-type Rejection {
+type Rejection @entity {
   id: ID!
   transaction: Transaction!
   rejector: String!
