@@ -10,8 +10,13 @@ import { Store, TypeormDatabase } from "@subsquid/typeorm-store";
 import { In } from "typeorm";
 import * as multisig_factory from "./abi/multisig_factory";
 import * as multisig from "./abi/multisig";
-import { Multisig, MultisigFactory, Transaction, TransactionStatus } from "./model";
-import {assertNotNull} from '@subsquid/substrate-processor';
+import {
+  Multisig,
+  MultisigFactory,
+  Transaction,
+  TransactionStatus,
+} from "./model";
+import { assertNotNull } from "@subsquid/substrate-processor";
 
 function uint8ArrayToHexString(uint8Array: Uint8Array): string {
   return (
@@ -22,7 +27,7 @@ function uint8ArrayToHexString(uint8Array: Uint8Array): string {
   );
 }
 
-const FACTORY_ADDRESS_SS58 = "XYmu1eoskyj83bSWqhTW2DUzuRCHHgrFGXUv3yxhBVBd3tT";
+const FACTORY_ADDRESS_SS58 = "YkPXYiL26Tg3G8BxxnAhrPfmDxb5ojNQDqPiSMZKt2Wcfgk";
 const FACTORY_ADDRESS = toHex(ss58.decode(FACTORY_ADDRESS_SS58).bytes);
 const SS58_PREFIX = ss58.decode(FACTORY_ADDRESS_SS58).prefix;
 
@@ -31,7 +36,7 @@ const processor = new SubstrateBatchProcessor()
     archive: lookupArchive("shibuya", { release: "FireSquid" }),
   })
   .setBlockRange({
-    from: 4390511,
+    from: 4438254,
   })
   .addContractsContractEmitted("*");
 
@@ -41,6 +46,7 @@ type Ctx = BatchContext<Store, Item>;
 interface MultisigRecord {
   id: string;
   address: string;
+  deploymentSalt: string;
   threshold: number;
   owners: string[];
   creationTimestamp: Date;
@@ -96,6 +102,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             multisigData[multisigAddress] = {
               id: item.event.id,
               address: multisigAddress,
+              deploymentSalt: uint8ArrayToHexString(event.salt),
               threshold: event.threshold,
               owners: event.ownersList.map((owner) =>
                 ss58.codec(SS58_PREFIX).encode(owner)
@@ -103,6 +110,8 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               creationTimestamp: new Date(block.header.timestamp),
               creationBlockNumber: block.header.height,
             };
+
+            console.log("New Multisig:" , multisigData[multisigAddress]);
           }
         }
         // Multisigs Events
@@ -177,6 +186,8 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               lastUpdatedTimestamp: new Date(block.header.timestamp),
               lastUpdatedBlockNumber: block.header.height,
             };
+
+            console.log("New Transaction:" , transactionData[newTransactionId]);
           }
           if (event.__kind === "TransactionExecuted") {
             const transactionId = contractAddress + "-" + event.txId;
@@ -231,6 +242,7 @@ async function updateOrCreateMultisigs(
     const multisig = new Multisig({
       id: ms.id,
       address: ms.address,
+      deploymentSalt: ms.deploymentSalt,
       threshold: ms.threshold,
       owners: ms.owners,
       creationTimestamp: ms.creationTimestamp,
@@ -247,12 +259,21 @@ async function updateOrCreateTransactions(
   ctx: Ctx,
   transactions: TransactionRecord[]
 ) {
+  let multisigIds = new Set<string>();
+  for (let t of transactions) {
+    multisigIds.add(t.multisig);
+  }
+
+  let multisigs = await ctx.store
+    .findBy(Multisig, { id: In([...multisigIds]) })
+    .then(toEntityMap);
   let txs: Transaction[] = [];
 
   txs = transactions.map((tx) => {
+    let multisig = assertNotNull(multisigs.get(tx.multisig));
     const transaction = new Transaction({
       id: tx.id,
-      multisig: tx.multisig,
+      multisig: multisig,
       txId: Number(tx.txId),
       contractAddress: tx.contractAddress,
       selector: tx.selector,
@@ -270,4 +291,8 @@ async function updateOrCreateTransactions(
   });
 
   await ctx.store.save(txs);
+}
+
+function toEntityMap<E extends { id: string }>(entities: E[]): Map<string, E> {
+  return new Map(entities.map((e) => [e.id, e]));
 }
