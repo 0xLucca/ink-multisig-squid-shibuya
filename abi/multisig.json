@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x08871249a2fc337247ff46c024be209781e6be4aadaedff8657f871db5ec0728",
+    "hash": "0x928c62eb71af918e760c538669a2577216a971a611aa5f78f062210e2a3a07a7",
     "language": "ink! 4.2.0",
     "compiler": "rustc 1.69.0-nightly",
     "build_info": {
@@ -45,7 +45,20 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          "Constructor that creates a multisig contract with a list of owners and a threshold",
+          "The threshold is the minimum number of approvals required to execute a transaction",
+          "All the representation invariant checks are performed in the constructor",
+          "The list of owners is a list of account ids that can propose, approve or reject transactions",
+          "The list of owners cannot be empty",
+          "The owners cannot be duplicated",
+          "The threshold cannot be greater than the number of owners",
+          "The threshold cannot be zero",
+          "The maximum number of owners is defined by MAX_OWNERS",
+          "The maximum number of transactions is defined by MAX_TRANSACTIONS",
+          "The transaction Id is a counter that starts at 0 and is incremented by 1 for each transaction",
+          "The transaction Id cannot overflow"
+        ],
         "label": "new",
         "payable": false,
         "returnType": {
@@ -56,21 +69,6 @@
           "type": 10
         },
         "selector": "0x9bae9d5e"
-      },
-      {
-        "args": [],
-        "default": false,
-        "docs": [],
-        "label": "default",
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink_primitives",
-            "ConstructorResult"
-          ],
-          "type": 10
-        },
-        "selector": "0xed4b9d1b"
       }
     ],
     "docs": [],
@@ -91,19 +89,19 @@
         "displayName": [
           "BlockNumber"
         ],
-        "type": 31
+        "type": 30
       },
       "chainExtension": {
         "displayName": [
           "ChainExtension"
         ],
-        "type": 32
+        "type": 31
       },
       "hash": {
         "displayName": [
           "Hash"
         ],
-        "type": 30
+        "type": 29
       },
       "maxEventTopics": 4,
       "timestamp": {
@@ -117,7 +115,9 @@
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " The new threshold"
+            ],
             "indexed": true,
             "label": "threshold",
             "type": {
@@ -128,13 +128,17 @@
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emitted when the threshold is changed"
+        ],
         "label": "ThresholdChanged"
       },
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " New owner's account id"
+            ],
             "indexed": true,
             "label": "owner",
             "type": {
@@ -145,13 +149,17 @@
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emmited when an owner is added"
+        ],
         "label": "OwnerAdded"
       },
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " Removed owner's account id"
+            ],
             "indexed": true,
             "label": "owner",
             "type": {
@@ -162,13 +170,17 @@
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emmited when an owner is removed"
+        ],
         "label": "OwnerRemoved"
       },
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " Transaction id"
+            ],
             "indexed": true,
             "label": "tx_id",
             "type": {
@@ -179,7 +191,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " Contract address"
+            ],
             "indexed": true,
             "label": "contract_address",
             "type": {
@@ -190,7 +204,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " Selector on the contract"
+            ],
             "indexed": false,
             "label": "selector",
             "type": {
@@ -199,7 +215,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " Input of the call"
+            ],
             "indexed": false,
             "label": "input",
             "type": {
@@ -210,7 +228,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " Transferred value of the call"
+            ],
             "indexed": false,
             "label": "transferred_value",
             "type": {
@@ -221,7 +241,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " Gas limit of the call"
+            ],
             "indexed": false,
             "label": "gas_limit",
             "type": {
@@ -232,7 +254,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " Allow reentry flag of the call"
+            ],
             "indexed": false,
             "label": "allow_reentry",
             "type": {
@@ -243,13 +267,17 @@
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emmited when a transaction is proposed"
+        ],
         "label": "TransactionProposed"
       },
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " Transaction id"
+            ],
             "indexed": true,
             "label": "tx_id",
             "type": {
@@ -260,7 +288,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " approver's account id"
+            ],
             "indexed": true,
             "label": "owner",
             "type": {
@@ -271,13 +301,17 @@
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emmited when a transaction is approved"
+        ],
         "label": "Approve"
       },
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " Transaction id"
+            ],
             "indexed": true,
             "label": "tx_id",
             "type": {
@@ -288,7 +322,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " rejecter's account id"
+            ],
             "indexed": true,
             "label": "owner",
             "type": {
@@ -299,13 +335,17 @@
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emmited when a transaction is rejected"
+        ],
         "label": "Reject"
       },
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " Transaction id"
+            ],
             "indexed": true,
             "label": "tx_id",
             "type": {
@@ -316,24 +356,30 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " Result of the transaction execution"
+            ],
             "indexed": false,
             "label": "result",
             "type": {
               "displayName": [
                 "TxResult"
               ],
-              "type": 29
+              "type": 28
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emmited when a transaction is executed"
+        ],
         "label": "TransactionExecuted"
       },
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " Transaction id"
+            ],
             "indexed": true,
             "label": "tx_id",
             "type": {
@@ -344,13 +390,38 @@
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emmited when a transaction is cancelled"
+        ],
+        "label": "TransactionCancelled"
+      },
+      {
+        "args": [
+          {
+            "docs": [
+              " Transaction id"
+            ],
+            "indexed": true,
+            "label": "tx_id",
+            "type": {
+              "displayName": [
+                "TxId"
+              ],
+              "type": 5
+            }
+          }
+        ],
+        "docs": [
+          "Emmited when a transaction is removed"
+        ],
         "label": "TransactionRemoved"
       },
       {
         "args": [
           {
-            "docs": [],
+            "docs": [
+              " Receiver's account id"
+            ],
             "indexed": true,
             "label": "to",
             "type": {
@@ -361,7 +432,9 @@
             }
           },
           {
-            "docs": [],
+            "docs": [
+              " Amount of the transfer"
+            ],
             "indexed": false,
             "label": "value",
             "type": {
@@ -372,7 +445,9 @@
             }
           }
         ],
-        "docs": [],
+        "docs": [
+          "Emmited when a transfer is performed"
+        ],
         "label": "Transfer"
       }
     ],
@@ -397,7 +472,16 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Transaction proposal",
+          " The parameters of the transaction are passed as a Transaction struct",
+          " The caller of this function must be an owner",
+          " The maximum number of transactions cannot be passed",
+          " The transaction Id cannot overflow",
+          " The transaction is stored in the contract",
+          " The transaction is initialized with 1 approval and 0 rejections",
+          " Emit TransactionProposed event"
+        ],
         "label": "propose_tx",
         "mutates": true,
         "payable": false,
@@ -423,7 +507,16 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Transaction approval",
+          " The caller of this function must be an owner",
+          " The parameter of the transaction is the transaction Id",
+          " The transaction Id must be valid",
+          " The caller must not have voted yet",
+          " The transaction is approved",
+          " Emit Approve event",
+          " The transaction is executed if the threshold is met"
+        ],
         "label": "approve_tx",
         "mutates": true,
         "payable": false,
@@ -449,7 +542,16 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Transaction rejection",
+          " The caller of this function must be an owner",
+          " The parameter of the transaction is the transaction Id",
+          " The transaction Id must be valid",
+          " The caller must not have voted yet",
+          " The transaction is rejected",
+          " Emit Reject event",
+          " The transaction is removed if the threshold cannot be met with the remaining approvals"
+        ],
         "label": "reject_tx",
         "mutates": true,
         "payable": false,
@@ -475,7 +577,12 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Transaction execution",
+          " The transaction Id must be valid",
+          " The parameter of the transaction is the transaction Id",
+          " The threshold must be met in order to execute the transaction"
+        ],
         "label": "try_execute_tx",
         "mutates": true,
         "payable": false,
@@ -484,7 +591,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 17
+          "type": 10
         },
         "selector": "0xd7c8d55f"
       },
@@ -501,7 +608,12 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Transaction removal",
+          " The transaction Id must be valid",
+          " The parameter of the transaction is the transaction Id",
+          " The threshold must not be met in order to remove the transaction"
+        ],
         "label": "try_remove_tx",
         "mutates": true,
         "payable": false,
@@ -510,7 +622,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 17
+          "type": 10
         },
         "selector": "0x33f0fe58"
       },
@@ -527,7 +639,16 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Owner addition",
+          " The caller of this function must be the multisig contract itself",
+          " The parameter of the transaction is the owner's account id",
+          " Perform checking representation invariants",
+          " The maximum number of owners cannot be reached",
+          " The owner cannot be already an owner",
+          " The owner is added",
+          " Emit OwnerAdded event"
+        ],
         "label": "add_owner",
         "mutates": true,
         "payable": false,
@@ -553,7 +674,16 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Owner removal",
+          " The caller of this function must be the multisig contract itself",
+          " The parameter of the transaction is the owner's account id",
+          " Perform checking representation invariants",
+          " The owners cannot be empty after removing",
+          " The threshold cannot be greater than the number of owners after removing",
+          " The owner is removed",
+          " Emit OwnerRemoved event"
+        ],
         "label": "remove_owner",
         "mutates": true,
         "payable": false,
@@ -579,7 +709,16 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Threshold change",
+          " The caller of this function must be the multisig contract itself",
+          " The parameter of the transaction is the new threshold",
+          " Perform checking representation invariants",
+          " The threshold cannot be greater than the number of owners",
+          " The threshold cannot be zero",
+          " The threshold is changed",
+          " Emit ThresholdChanged event"
+        ],
         "label": "change_threshold",
         "mutates": true,
         "payable": false,
@@ -614,7 +753,13 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Transfer funds from the contract to another account",
+          " The caller of this function must be the multisig contract itself",
+          " The parameter of the transaction is the receiver's account id and the amount to be transferred",
+          " The transfer is performed",
+          " Emit Transfer event"
+        ],
         "label": "transfer",
         "mutates": true,
         "payable": false,
@@ -630,7 +775,11 @@
       {
         "args": [],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Owners",
+          " Get Owners",
+          " The owners list is a list of account ids that can propose, approve or reject transactions"
+        ],
         "label": "get_owners",
         "mutates": false,
         "payable": false,
@@ -639,7 +788,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 18
+          "type": 17
         },
         "selector": "0x0b91ccc9"
       },
@@ -656,8 +805,32 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Is owner",
+          " The parameter of the transaction is the owner's account id",
+          " The owner is checked if it is an owner"
+        ],
         "label": "is_owner",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 18
+        },
+        "selector": "0xd7a3fbb1"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
+          " Treshold",
+          " Get Threshold",
+          " The threshold is the current minimum number of approvals required to execute a transaction"
+        ],
+        "label": "get_threshold",
         "mutates": false,
         "payable": false,
         "returnType": {
@@ -667,13 +840,17 @@
           ],
           "type": 19
         },
-        "selector": "0xd7a3fbb1"
+        "selector": "0x23122a1d"
       },
       {
         "args": [],
         "default": false,
-        "docs": [],
-        "label": "get_threshold",
+        "docs": [
+          " Transactions",
+          " Get Next Transaction Id",
+          " Returns the next transaction id"
+        ],
+        "label": "get_next_tx_id",
         "mutates": false,
         "payable": false,
         "returnType": {
@@ -683,28 +860,15 @@
           ],
           "type": 20
         },
-        "selector": "0x23122a1d"
-      },
-      {
-        "args": [],
-        "default": false,
-        "docs": [],
-        "label": "get_next_tx_id",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 21
-        },
         "selector": "0x95628e63"
       },
       {
         "args": [],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Get Active Transactions Id List",
+          " Returns the list of active transactions"
+        ],
         "label": "get_active_txid_list",
         "mutates": false,
         "payable": false,
@@ -713,7 +877,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 22
+          "type": 21
         },
         "selector": "0x7c22b655"
       },
@@ -730,7 +894,11 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Get Transaction",
+          " The parameter of the transaction is the transaction id",
+          " Returns the transaction or None if the transaction id is not valid"
+        ],
         "label": "get_tx",
         "mutates": false,
         "payable": false,
@@ -739,7 +907,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 23
+          "type": 22
         },
         "selector": "0x00702515"
       },
@@ -756,7 +924,11 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Is Transaction Valid",
+          " The parameter of the transaction is the transaction id",
+          " Returns a result with () if the transaction id is valid or an Error if it is not valid"
+        ],
         "label": "is_tx_valid",
         "mutates": false,
         "payable": false,
@@ -782,7 +954,11 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Get Transaction Approvals",
+          " The parameter of the transaction is the transaction id",
+          " Returns the number of approvals for the transaction if the transaction id is valid or None if it is not valid"
+        ],
         "label": "get_tx_approvals",
         "mutates": false,
         "payable": false,
@@ -791,7 +967,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 25
+          "type": 24
         },
         "selector": "0x7818ec2a"
       },
@@ -808,7 +984,11 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Get Transaction Rejections",
+          " The parameter of the transaction is the transaction id",
+          " Returns the number of rejections for the transaction if the transaction id is valid or None if it is not valid"
+        ],
         "label": "get_tx_rejections",
         "mutates": false,
         "payable": false,
@@ -817,7 +997,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 25
+          "type": 24
         },
         "selector": "0xe6fca8b0"
       },
@@ -843,7 +1023,11 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " Get Transaction Approval For Account",
+          " The parameters of the transaction are the transaction id and the account id",
+          " Returns true if the account has approved the transaction, false if the account has rejected the transaction or None if the transaction id is not valid"
+        ],
         "label": "get_tx_approval_for_account",
         "mutates": false,
         "payable": false,
@@ -852,7 +1036,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 27
+          "type": 26
         },
         "selector": "0x0edbed0b"
       }
@@ -1233,7 +1417,7 @@
                 "fields": [
                   {
                     "type": 13,
-                    "typeName": "WrappedEnvError"
+                    "typeName": "String"
                   }
                 ],
                 "index": 0,
@@ -1303,7 +1487,7 @@
         "path": [
           "multisig",
           "multisig",
-          "Error"
+          "MultisigError"
         ]
       }
     },
@@ -1311,40 +1495,8 @@
       "id": 13,
       "type": {
         "def": {
-          "variant": {
-            "variants": [
-              {
-                "index": 0,
-                "name": "Decode"
-              },
-              {
-                "index": 1,
-                "name": "CalleeTrapped"
-              },
-              {
-                "index": 2,
-                "name": "CalleeReverted"
-              },
-              {
-                "index": 3,
-                "name": "TransferFailed"
-              },
-              {
-                "index": 4,
-                "name": "NotCallable"
-              },
-              {
-                "index": 5,
-                "name": "Unexpected"
-              }
-            ]
-          }
-        },
-        "path": [
-          "multisig",
-          "multisig",
-          "WrappedEnvError"
-        ]
+          "primitive": "str"
+        }
       }
     },
     {
@@ -1432,48 +1584,6 @@
               {
                 "fields": [
                   {
-                    "type": 4
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 14
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 4
-          },
-          {
-            "name": "E",
-            "type": 14
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
-      "id": 18,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
                     "type": 0
                   }
                 ],
@@ -1508,7 +1618,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 18,
       "type": {
         "def": {
           "variant": {
@@ -1550,7 +1660,7 @@
       }
     },
     {
-      "id": 20,
+      "id": 19,
       "type": {
         "def": {
           "variant": {
@@ -1592,7 +1702,7 @@
       }
     },
     {
-      "id": 21,
+      "id": 20,
       "type": {
         "def": {
           "variant": {
@@ -1634,7 +1744,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 21,
       "type": {
         "def": {
           "variant": {
@@ -1676,7 +1786,7 @@
       }
     },
     {
-      "id": 23,
+      "id": 22,
       "type": {
         "def": {
           "variant": {
@@ -1684,7 +1794,7 @@
               {
                 "fields": [
                   {
-                    "type": 24
+                    "type": 23
                   }
                 ],
                 "index": 0,
@@ -1705,7 +1815,7 @@
         "params": [
           {
             "name": "T",
-            "type": 24
+            "type": 23
           },
           {
             "name": "E",
@@ -1718,7 +1828,7 @@
       }
     },
     {
-      "id": 24,
+      "id": 23,
       "type": {
         "def": {
           "variant": {
@@ -1751,7 +1861,7 @@
       }
     },
     {
-      "id": 25,
+      "id": 24,
       "type": {
         "def": {
           "variant": {
@@ -1759,7 +1869,7 @@
               {
                 "fields": [
                   {
-                    "type": 26
+                    "type": 25
                   }
                 ],
                 "index": 0,
@@ -1780,7 +1890,7 @@
         "params": [
           {
             "name": "T",
-            "type": 26
+            "type": 25
           },
           {
             "name": "E",
@@ -1793,7 +1903,7 @@
       }
     },
     {
-      "id": 26,
+      "id": 25,
       "type": {
         "def": {
           "variant": {
@@ -1826,7 +1936,7 @@
       }
     },
     {
-      "id": 27,
+      "id": 26,
       "type": {
         "def": {
           "variant": {
@@ -1834,7 +1944,7 @@
               {
                 "fields": [
                   {
-                    "type": 28
+                    "type": 27
                   }
                 ],
                 "index": 0,
@@ -1855,7 +1965,7 @@
         "params": [
           {
             "name": "T",
-            "type": 28
+            "type": 27
           },
           {
             "name": "E",
@@ -1868,7 +1978,7 @@
       }
     },
     {
-      "id": 28,
+      "id": 27,
       "type": {
         "def": {
           "variant": {
@@ -1901,7 +2011,7 @@
       }
     },
     {
-      "id": 29,
+      "id": 28,
       "type": {
         "def": {
           "variant": {
@@ -1920,7 +2030,7 @@
                 "fields": [
                   {
                     "type": 12,
-                    "typeName": "Error"
+                    "typeName": "MultisigError"
                   }
                 ],
                 "index": 1,
@@ -1937,7 +2047,7 @@
       }
     },
     {
-      "id": 30,
+      "id": 29,
       "type": {
         "def": {
           "composite": {
@@ -1957,7 +2067,7 @@
       }
     },
     {
-      "id": 31,
+      "id": 30,
       "type": {
         "def": {
           "primitive": "u32"
@@ -1965,7 +2075,7 @@
       }
     },
     {
-      "id": 32,
+      "id": 31,
       "type": {
         "def": {
           "variant": {}
