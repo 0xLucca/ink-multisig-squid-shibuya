@@ -45,7 +45,8 @@ type Ctx = BatchContext<Store, Item>;
 
 interface MultisigRecord {
   id: string;
-  address: string;
+  addressSS58: string;
+  addressHex: string;
   deploymentSalt: string;
   threshold: number;
   owners: string[];
@@ -69,7 +70,6 @@ interface TransactionRecord {
   lastUpdatedBlockNumber: number;
 }
 
-//let existingMultisigs: Set<string>;
 let existingMultisigs: Map<string, boolean>; //Map that contains the multisig address and a boolean that indicates if we have the content on multisigData
 const multisigData: { [key: string]: MultisigRecord } = {};
 
@@ -80,28 +80,36 @@ processor.run(new TypeormDatabase(), async (ctx) => {
   if (!existingMultisigs) {
     existingMultisigs = await ctx.store
       .findBy(Multisig, {})
-      .then((m) => new Map(m.map((m) => [m.id, false])));
+      .then((m) => new Map(m.map((m) => [m.addressHex, false])));
   }
+
+  existingTransactions = new Set();
+
+  console.log("Existing Multisigs:" , existingMultisigs);
 
   for (const block of ctx.blocks) {
     for (const item of block.items) {
       if (item.name === "Contracts.ContractEmitted") {
-        const contractAddress = item.event.args.contract;
+        const contractAddressHex = item.event.args.contract;
         // Factory Events
-        if (contractAddress === FACTORY_ADDRESS) {
+        if (contractAddressHex === FACTORY_ADDRESS) {
+          console.log("----Factory event----")
           const event = multisig_factory.decodeEvent(item.event.args.data);
           if (event.__kind === "NewMultisig") {
             const multisigAddress = ss58
               .codec(SS58_PREFIX)
               .encode(event.multisigAddress);
+            const multisigAddressHex = uint8ArrayToHexString(event.multisigAddress);
 
             // Add to map
-            existingMultisigs.set(multisigAddress, true);
+            existingMultisigs.set(multisigAddressHex, true);
+            console.log("Existing Multisigs:" , existingMultisigs);
 
             // Add to object
-            multisigData[multisigAddress] = {
+            multisigData[multisigAddressHex] = {
               id: item.event.id,
-              address: multisigAddress,
+              addressSS58: multisigAddress,
+              addressHex: multisigAddressHex,
               deploymentSalt: uint8ArrayToHexString(event.salt),
               threshold: event.threshold,
               owners: event.ownersList.map((owner) =>
@@ -111,67 +119,70 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               creationBlockNumber: block.header.height,
             };
 
-            console.log("New Multisig:" , multisigData[multisigAddress]);
+            console.log("New Multisig:" , multisigData[multisigAddressHex]);
           }
         }
         // Multisigs Events
-        if (existingMultisigs.has(contractAddress)) {
+        console.log(contractAddressHex)
+        if (existingMultisigs.has(contractAddressHex)) {
+          console.log("----Multisig event----")
           const event = multisig.decodeEvent(item.event.args.data);
           if (event.__kind === "ThresholdChanged") {
             // If multisigData doesn't have this multisig, it means that we need to fetch it from the DB
-            if (!existingMultisigs.get(contractAddress)) {
-              multisigData[contractAddress] = (
-                await ctx.store.findBy(Multisig, { id: In([contractAddress]) })
+            if (!existingMultisigs.get(contractAddressHex)) {
+              multisigData[contractAddressHex] = (
+                await ctx.store.findBy(Multisig, { addressHex: In([contractAddressHex]) })
               )[0]; //This must exist and be unique
 
               // Set map to true to indicate that we have the content on multisigData
-              existingMultisigs.set(contractAddress, true);
+              existingMultisigs.set(contractAddressHex, true);
             }
 
             // Update the threshold
-            multisigData[contractAddress].threshold = event.threshold;
+            multisigData[contractAddressHex].threshold = event.threshold;
           }
           if (event.__kind === "OwnerAdded") {
             // If multisigData doesn't have this multisig, it means that we need to fetch it from the DB
-            if (existingMultisigs.get(contractAddress) === false) {
-              multisigData[contractAddress] = (
-                await ctx.store.findBy(Multisig, { id: In([contractAddress]) })
+            if (existingMultisigs.get(contractAddressHex) === false) {
+              multisigData[contractAddressHex] = (
+                await ctx.store.findBy(Multisig, { id: In([contractAddressHex]) })
               )[0]; //This must exist and be unique
 
               // Set map to true to indicate that we have the content on multisigData
-              existingMultisigs.set(contractAddress, true);
+              existingMultisigs.set(contractAddressHex, true);
             }
 
             // Add the new owner
-            multisigData[contractAddress].owners.push(
+            multisigData[contractAddressHex].owners.push(
               ss58.codec(SS58_PREFIX).encode(event.owner)
             );
           }
           if (event.__kind === "OwnerRemoved") {
             // If multisigData doesn't have this multisig, it means that we need to fetch it from the DB
-            if (existingMultisigs.get(contractAddress) === false) {
-              multisigData[contractAddress] = (
-                await ctx.store.findBy(Multisig, { id: In([contractAddress]) })
+            if (existingMultisigs.get(contractAddressHex) === false) {
+              multisigData[contractAddressHex] = (
+                await ctx.store.findBy(Multisig, { id: In([contractAddressHex]) })
               )[0]; //This must exist and be unique
 
               // Set map to true to indicate that we have the content on multisigData
-              existingMultisigs.set(contractAddress, true);
+              existingMultisigs.set(contractAddressHex, true);
             }
 
             // Remove the owner
-            multisigData[contractAddress].owners = multisigData[
-              contractAddress
+            multisigData[contractAddressHex].owners = multisigData[
+              contractAddressHex
             ].owners.filter(
               (owner) => owner !== ss58.codec(SS58_PREFIX).encode(event.owner)
             );
           }
           if (event.__kind === "TransactionProposed") {
+            console.log("----Transaction proposed event----")
             //Each time a transaction is proposed, we create a new transaction record and also a new approval record for the creator
-            const newTransactionId = contractAddress + "-" + event.txId;
+            const newTransactionId = contractAddressHex + "-" + event.txId;
             existingTransactions.add(newTransactionId);
             transactionData[newTransactionId] = {
               id: newTransactionId,
-              multisig: contractAddress,
+              multisig: contractAddressHex,
               txId: event.txId,
               contractAddress: ss58
                 .codec(SS58_PREFIX)
@@ -190,14 +201,14 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             console.log("New Transaction:" , transactionData[newTransactionId]);
           }
           if (event.__kind === "TransactionExecuted") {
-            const transactionId = contractAddress + "-" + event.txId;
+            const transactionId = contractAddressHex + "-" + event.txId;
             if (!existingTransactions.has(transactionId)) {
               let dbTx = (
                 await ctx.store.findBy(Transaction, { id: In([transactionId]) })
               )[0]; //This must exist and be unique
               transactionData[transactionId] = {
                 id: transactionId,
-                multisig: contractAddress,
+                multisig: contractAddressHex,
                 txId: event.txId,
                 contractAddress: dbTx.contractAddress,
                 selector: dbTx.selector,
@@ -212,7 +223,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               };
 
               // Set map to true to indicate that we have the content on multisigData
-              existingMultisigs.set(contractAddress, true);
+              existingMultisigs.set(contractAddressHex, true);
             }
           }
           if (event.__kind === "TransactionRemoved") {
@@ -241,7 +252,8 @@ async function updateOrCreateMultisigs(
   multisigs = multisigRecords.map((ms) => {
     const multisig = new Multisig({
       id: ms.id,
-      address: ms.address,
+      addressSS58: ms.addressSS58,
+      addressHex: ms.addressHex,
       deploymentSalt: ms.deploymentSalt,
       threshold: ms.threshold,
       owners: ms.owners,
@@ -259,13 +271,13 @@ async function updateOrCreateTransactions(
   ctx: Ctx,
   transactions: TransactionRecord[]
 ) {
-  let multisigIds = new Set<string>();
+  let multisigAddressesHex = new Set<string>();
   for (let t of transactions) {
-    multisigIds.add(t.multisig);
+    multisigAddressesHex.add(t.multisig);
   }
 
   let multisigs = await ctx.store
-    .findBy(Multisig, { id: In([...multisigIds]) })
+    .findBy(Multisig, { addressHex: In([...multisigAddressesHex]) })
     .then(toEntityMap);
   let txs: Transaction[] = [];
 
@@ -293,6 +305,6 @@ async function updateOrCreateTransactions(
   await ctx.store.save(txs);
 }
 
-function toEntityMap<E extends { id: string }>(entities: E[]): Map<string, E> {
-  return new Map(entities.map((e) => [e.id, e]));
+function toEntityMap<E extends { addressHex: string }>(entities: E[]): Map<string, E> {
+  return new Map(entities.map((e) => [e.addressHex, e]));
 }

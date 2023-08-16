@@ -13,7 +13,8 @@ type MultisigFactory @entity {
 
 type Multisig @entity {
   id: ID!
-  address: String!
+  addressSS58: String!
+  addressHex: String!
   deploymentSalt: String!
   threshold: Int!
   owners: [String!]!

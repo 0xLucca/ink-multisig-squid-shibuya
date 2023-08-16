@@ -11,7 +11,10 @@ export class Multisig {
     id!: string
 
     @Column_("text", {nullable: false})
-    address!: string
+    addressSS58!: string
+
+    @Column_("text", {nullable: false})
+    addressHex!: string
 
     @Column_("text", {nullable: false})
     deploymentSalt!: string
