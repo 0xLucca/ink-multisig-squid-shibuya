@@ -63,7 +63,7 @@ interface TransactionRecord {
   args: string;
   value: bigint;
   status: TransactionStatus;
-  error: string;
+  error: string | null | undefined;
   approvalCount: number;
   rejectionCount: number;
   lastUpdatedTimestamp: Date;
@@ -85,15 +85,12 @@ processor.run(new TypeormDatabase(), async (ctx) => {
 
   existingTransactions = new Set();
 
-  console.log("Existing Multisigs:" , existingMultisigs);
-
   for (const block of ctx.blocks) {
     for (const item of block.items) {
       if (item.name === "Contracts.ContractEmitted") {
         const contractAddressHex = item.event.args.contract;
         // Factory Events
         if (contractAddressHex === FACTORY_ADDRESS) {
-          console.log("----Factory event----")
           const event = multisig_factory.decodeEvent(item.event.args.data);
           if (event.__kind === "NewMultisig") {
             const multisigAddress = ss58
@@ -103,7 +100,6 @@ processor.run(new TypeormDatabase(), async (ctx) => {
 
             // Add to map
             existingMultisigs.set(multisigAddressHex, true);
-            console.log("Existing Multisigs:" , existingMultisigs);
 
             // Add to object
             multisigData[multisigAddressHex] = {
@@ -118,14 +114,10 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               creationTimestamp: new Date(block.header.timestamp),
               creationBlockNumber: block.header.height,
             };
-
-            console.log("New Multisig:" , multisigData[multisigAddressHex]);
           }
         }
         // Multisigs Events
-        console.log(contractAddressHex)
         if (existingMultisigs.has(contractAddressHex)) {
-          console.log("----Multisig event----")
           const event = multisig.decodeEvent(item.event.args.data);
           if (event.__kind === "ThresholdChanged") {
             // If multisigData doesn't have this multisig, it means that we need to fetch it from the DB
@@ -176,7 +168,6 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             );
           }
           if (event.__kind === "TransactionProposed") {
-            console.log("----Transaction proposed event----")
             //Each time a transaction is proposed, we create a new transaction record and also a new approval record for the creator
             const newTransactionId = contractAddressHex + "-" + event.txId;
             existingTransactions.add(newTransactionId);
@@ -197,8 +188,6 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               lastUpdatedTimestamp: new Date(block.header.timestamp),
               lastUpdatedBlockNumber: block.header.height,
             };
-
-            console.log("New Transaction:" , transactionData[newTransactionId]);
           }
           if (event.__kind === "TransactionExecuted") {
             const transactionId = contractAddressHex + "-" + event.txId;
@@ -214,16 +203,27 @@ processor.run(new TypeormDatabase(), async (ctx) => {
                 selector: dbTx.selector,
                 args: dbTx.args,
                 value: dbTx.value,
-                status: TransactionStatus.EXECUTED_SUCCESS, //TODO HANDLE SUCCESS AND FAILURE
-                error: "", //TODO: Get error from event
+                status: dbTx.status,
+                error: dbTx.error,
                 approvalCount: dbTx.approvalCount,
                 rejectionCount: dbTx.rejectionCount,
-                lastUpdatedTimestamp: new Date(block.header.timestamp),
-                lastUpdatedBlockNumber: block.header.height,
+                lastUpdatedTimestamp: dbTx.lastUpdatedTimestamp,
+                lastUpdatedBlockNumber: dbTx.lastUpdatedBlockNumber,
               };
 
-              // Set map to true to indicate that we have the content on multisigData
-              existingMultisigs.set(contractAddressHex, true);
+              existingTransactions.add(transactionId);
+            }
+
+            // Update the transaction
+            transactionData[transactionId].lastUpdatedTimestamp = new Date(block.header.timestamp);
+            transactionData[transactionId].lastUpdatedBlockNumber = block.header.height;
+
+            if(event.result.__kind === "Success") {
+              transactionData[transactionId].status = TransactionStatus.EXECUTED_SUCCESS;
+            }
+            if(event.result.__kind === "Failed") {
+              transactionData[transactionId].status = TransactionStatus.EXECUTED_FAILURE;
+              transactionData[transactionId].error = event.result.value.toString();
             }
           }
           if (event.__kind === "TransactionRemoved") {
