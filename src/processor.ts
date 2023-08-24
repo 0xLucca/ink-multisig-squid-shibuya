@@ -17,6 +17,7 @@ import {
   TransactionStatus,
 } from "./model";
 import { assertNotNull } from "@subsquid/substrate-processor";
+import { MultisigError_EnvExecutionFailed, MultisigError_LangExecutionFailed } from "./abi/multisig";
 
 function uint8ArrayToHexString(uint8Array: Uint8Array): string {
   return (
@@ -223,7 +224,18 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             }
             if(event.result.__kind === "Failed") {
               transactionData[transactionId].status = TransactionStatus.EXECUTED_FAILURE;
-              transactionData[transactionId].error = event.result.value.toString();
+
+              if(event.result.value.__kind === "EnvExecutionFailed") {
+                let error = event.result.value as MultisigError_EnvExecutionFailed;
+                transactionData[transactionId].error = event.result.value.__kind + ": " + error.value;
+              }
+              else if(event.result.value.__kind === "LangExecutionFailed") {
+                let error = event.result.value as MultisigError_LangExecutionFailed;
+                transactionData[transactionId].error = event.result.value.__kind + ": " + error.value.__kind;
+              }
+              else {
+                transactionData[transactionId].error = event.result.value.__kind;
+              }
             }
           }
           if (event.__kind === "TransactionRemoved") {
