@@ -191,6 +191,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               (owner) => owner !== ss58.codec(SS58_PREFIX).encode(event.owner)
             );
           }
+
           if (event.__kind === "TransactionProposed") {
             //Each time a transaction is proposed, we create a new transaction record and also a new approval record for the creator
             const newTransactionId = contractAddressHex + "-" + event.txId;
@@ -212,6 +213,20 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               lastUpdatedTimestamp: new Date(block.header.timestamp),
               lastUpdatedBlockNumber: block.header.height,
             };
+
+            const newApprovalId =
+            newTransactionId + "-" + uint8ArrayToHexString(event.proposer);
+           
+            // Add the approval
+            const newApproval: ApprovalOrRejectionRecord = {
+              id: newApprovalId,
+              transaction: newTransactionId,
+              caller: ss58.codec(SS58_PREFIX).encode(event.proposer),
+              timestamp: new Date(block.header.timestamp),
+              blockNumber: block.header.height,
+            };
+
+            approvals.push(newApproval);
           }
           if (event.__kind === "TransactionExecuted") {
             const transactionId = contractAddressHex + "-" + event.txId;
