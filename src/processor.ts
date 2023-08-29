@@ -24,7 +24,14 @@ import {
   MultisigError_LangExecutionFailed,
 } from "./abi/multisig";
 
-import { uint8ArrayToHexString, toEntityMap, toEntityMapTx } from "./utils/helpers";
+import { MultisigRepository } from "./repository/MultisigRepository";
+import {
+  uint8ArrayToHexString,
+  toEntityMap,
+  toEntityMapTx,
+} from "./common/helpers";
+import { TransactionRepository } from "./repository/TransactionRepository";
+import { ApprovalOrRejectionRecord, MultisigRecord, TransactionRecord } from "./common/types";
 
 const FACTORY_ADDRESS_SS58 = "bgzZgSNXh2wqApuFbP1pzs9MBWJUcGdzRbFSkZp3J4SPWgq";
 const FACTORY_ADDRESS = toHex(ss58.decode(FACTORY_ADDRESS_SS58).bytes);
@@ -39,43 +46,8 @@ const processor = new SubstrateBatchProcessor()
   })
   .addContractsContractEmitted("*");
 
-type Item = BatchProcessorItem<typeof processor>;
-type Ctx = BatchContext<Store, Item>;
-
-interface MultisigRecord {
-  id: string;
-  addressSS58: string;
-  addressHex: string;
-  deploymentSalt: string;
-  threshold: number;
-  owners: string[];
-  creationTimestamp: Date;
-  creationBlockNumber: number;
-}
-
-interface TransactionRecord {
-  id: string;
-  multisig: string;
-  txId: bigint;
-  contractAddress: string;
-  selector: string;
-  args: string;
-  value: bigint;
-  status: TransactionStatus;
-  error: string | null | undefined;
-  approvalCount: number;
-  rejectionCount: number;
-  lastUpdatedTimestamp: Date;
-  lastUpdatedBlockNumber: number;
-}
-
-interface ApprovalOrRejectionRecord {
-  id: string;
-  transaction: string;
-  caller: string;
-  timestamp: Date;
-  blockNumber: number;
-}
+export type Item = BatchProcessorItem<typeof processor>;
+export type Ctx = BatchContext<Store, Item>;
 
 let existingMultisigs: Map<string, boolean>; //Map that contains the multisig address and a boolean that indicates if we have the content on multisigData
 const multisigData: Record<string, MultisigRecord> = {};
@@ -86,7 +58,15 @@ const transactionData: Record<string, TransactionRecord> = {};
 const approvals: ApprovalOrRejectionRecord[] = [];
 const rejections: ApprovalOrRejectionRecord[] = [];
 
+// Repositories
+
 processor.run(new TypeormDatabase(), async (ctx) => {
+  const multisigRepository = new MultisigRepository(ctx);
+  const transactionRepository = new TransactionRepository(
+    ctx,
+    multisigRepository
+  );
+
   if (!existingMultisigs) {
     existingMultisigs = await ctx.store
       .findBy(Multisig, {})
@@ -208,8 +188,8 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             };
 
             const newApprovalId =
-            newTransactionId + "-" + uint8ArrayToHexString(event.proposer);
-           
+              newTransactionId + "-" + uint8ArrayToHexString(event.proposer);
+
             // Add the approval
             const newApproval: ApprovalOrRejectionRecord = {
               id: newApprovalId,
@@ -308,8 +288,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             );
             transactionData[transactionId].lastUpdatedBlockNumber =
               block.header.height;
-              transactionData[transactionId].status =
-              TransactionStatus.CANCELLED;
+            transactionData[transactionId].status = TransactionStatus.CANCELLED;
           }
           if (event.__kind === "TransactionRemoved") {
           }
@@ -404,73 +383,11 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     }
   }
 
-  await updateOrCreateMultisigs(ctx, Object.values(multisigData));
-  await updateOrCreateTransactions(ctx, Object.values(transactionData));
+  await multisigRepository.updateOrCreate(Object.values(multisigData));
+  await transactionRepository.updateOrCreate(Object.values(transactionData));
   await createApprovals(ctx, approvals);
   await createRejections(ctx, rejections);
 });
-
-async function updateOrCreateMultisigs(
-  ctx: Ctx,
-  multisigRecords: MultisigRecord[]
-) {
-  let multisigs: Multisig[] = [];
-
-  multisigs = multisigRecords.map((ms) => {
-    const multisig = new Multisig({
-      id: ms.id,
-      addressSS58: ms.addressSS58,
-      addressHex: ms.addressHex,
-      deploymentSalt: ms.deploymentSalt,
-      threshold: ms.threshold,
-      owners: ms.owners,
-      creationTimestamp: ms.creationTimestamp,
-      creationBlockNumber: ms.creationBlockNumber,
-    });
-
-    return multisig;
-  });
-
-  await ctx.store.save(multisigs);
-}
-
-async function updateOrCreateTransactions(
-  ctx: Ctx,
-  transactions: TransactionRecord[]
-) {
-  let multisigAddressesHex = new Set<string>();
-  for (let t of transactions) {
-    multisigAddressesHex.add(t.multisig);
-  }
-
-  let multisigs = await ctx.store
-    .findBy(Multisig, { addressHex: In([...multisigAddressesHex]) })
-    .then(toEntityMap);
-  let txs: Transaction[] = [];
-
-  txs = transactions.map((tx) => {
-    let multisig = assertNotNull(multisigs.get(tx.multisig));
-    const transaction = new Transaction({
-      id: tx.id,
-      multisig: multisig,
-      txId: tx.txId,
-      contractAddress: tx.contractAddress,
-      selector: tx.selector,
-      args: tx.args,
-      value: tx.value,
-      status: tx.status,
-      error: tx.error,
-      approvalCount: tx.approvalCount,
-      rejectionCount: tx.rejectionCount,
-      lastUpdatedTimestamp: tx.lastUpdatedTimestamp,
-      lastUpdatedBlockNumber: tx.lastUpdatedBlockNumber,
-    });
-
-    return transaction;
-  });
-
-  await ctx.store.save(txs);
-}
 
 async function createApprovals(
   ctx: Ctx,
@@ -531,4 +448,3 @@ async function createRejections(
 
   await ctx.store.save(rejectionsToSave);
 }
-
