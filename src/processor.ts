@@ -24,14 +24,7 @@ import {
   MultisigError_LangExecutionFailed,
 } from "./abi/multisig";
 
-function uint8ArrayToHexString(uint8Array: Uint8Array): string {
-  return (
-    "0x" +
-    Array.from(uint8Array, (byte) => byte.toString(16).padStart(2, "0")).join(
-      ""
-    )
-  );
-}
+import { uint8ArrayToHexString, toEntityMap, toEntityMapTx } from "./utils/helpers";
 
 const FACTORY_ADDRESS_SS58 = "bgzZgSNXh2wqApuFbP1pzs9MBWJUcGdzRbFSkZp3J4SPWgq";
 const FACTORY_ADDRESS = toHex(ss58.decode(FACTORY_ADDRESS_SS58).bytes);
@@ -539,14 +532,3 @@ async function createRejections(
   await ctx.store.save(rejectionsToSave);
 }
 
-function toEntityMap<E extends { addressHex: string }>(
-  entities: E[]
-): Map<string, E> {
-  return new Map(entities.map((e) => [e.addressHex, e]));
-}
-
-function toEntityMapTx<E extends { id: string }>(
-  entities: E[]
-): Map<string, E> {
-  return new Map(entities.map((e) => [e.id, e]));
-}
