@@ -33,7 +33,7 @@ function uint8ArrayToHexString(uint8Array: Uint8Array): string {
   );
 }
 
-const FACTORY_ADDRESS_SS58 = "YkPXYiL26Tg3G8BxxnAhrPfmDxb5ojNQDqPiSMZKt2Wcfgk";
+const FACTORY_ADDRESS_SS58 = "bgzZgSNXh2wqApuFbP1pzs9MBWJUcGdzRbFSkZp3J4SPWgq";
 const FACTORY_ADDRESS = toHex(ss58.decode(FACTORY_ADDRESS_SS58).bytes);
 const SS58_PREFIX = ss58.decode(FACTORY_ADDRESS_SS58).prefix;
 
