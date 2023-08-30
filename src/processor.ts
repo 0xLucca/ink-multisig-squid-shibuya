@@ -5,66 +5,51 @@ import {
   BatchContext,
   BatchProcessorItem,
   SubstrateBatchProcessor,
+  SubstrateBlock,
 } from "@subsquid/substrate-processor";
 import { Store, TypeormDatabase } from "@subsquid/typeorm-store";
-import { In } from "typeorm";
-import * as multisig_factory from "./abi/multisig_factory";
 import * as multisig from "./abi/multisig";
-import {
-  Multisig,
-  MultisigFactory,
-  Transaction,
-  TransactionStatus,
-  Approval,
-  Rejection,
-} from "./model";
-import { assertNotNull } from "@subsquid/substrate-processor";
+import { TransactionStatus } from "./model";
 import {
   MultisigError_EnvExecutionFailed,
   MultisigError_LangExecutionFailed,
 } from "./abi/multisig";
 
 import { MultisigRepository } from "./repository/MultisigRepository";
-import {
-  uint8ArrayToHexString,
-  toEntityMap,
-  toEntityMapTx,
-} from "./common/helpers";
+import { uint8ArrayToHexString } from "./common/helpers";
 import { TransactionRepository } from "./repository/TransactionRepository";
 import {
   ApprovalOrRejectionRecord,
-  MultisigRecord,
-  TransactionRecord,
 } from "./common/types";
 import { ApprovalRepository } from "./repository/ApprovalRepository";
 import { RejectionRepository } from "./repository/RejectionRepository";
+import {
+  existingMultisigs,
+  multisigData,
+  existingTransactions,
+  transactionData,
+  approvals,
+  rejections,
+} from "./common/entityRecords";
+import { handleMultisigFactoryEvents } from "./mappings/multisigFactory";
+import { FACTORY_ADDRESS, FACTORY_DEPLOYMENT_BLOCK, SS58_PREFIX } from "./common/constants";
 
-const FACTORY_ADDRESS_SS58 = "bgzZgSNXh2wqApuFbP1pzs9MBWJUcGdzRbFSkZp3J4SPWgq";
-const FACTORY_ADDRESS = toHex(ss58.decode(FACTORY_ADDRESS_SS58).bytes);
-const SS58_PREFIX = ss58.decode(FACTORY_ADDRESS_SS58).prefix;
-
+// Define the processor
 const processor = new SubstrateBatchProcessor()
   .setDataSource({
     archive: lookupArchive("shibuya", { release: "FireSquid" }),
   })
   .setBlockRange({
-    from: 4438254,
+    from: FACTORY_DEPLOYMENT_BLOCK,
   })
   .addContractsContractEmitted("*");
 
 export type Item = BatchProcessorItem<typeof processor>;
 export type Ctx = BatchContext<Store, Item>;
 
-let existingMultisigs: Map<string, boolean>; //Map that contains the multisig address and a boolean that indicates if we have the content on multisigData
-const multisigData: Record<string, MultisigRecord> = {};
-
-let existingTransactions: Set<string>;
-const transactionData: Record<string, TransactionRecord> = {};
-
-const approvals: ApprovalOrRejectionRecord[] = [];
-const rejections: ApprovalOrRejectionRecord[] = [];
-
+// Run the processor
 processor.run(new TypeormDatabase(), async (ctx) => {
+  // Initialize repositories
   const multisigRepository = new MultisigRepository(ctx);
   const transactionRepository = new TransactionRepository(
     ctx,
@@ -76,46 +61,23 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     transactionRepository
   );
 
-  if (!existingMultisigs) {
-    existingMultisigs = await multisigRepository
-      .findAll()
-      .then((m) => new Map(m.map((m) => [m.addressHex, false])));
+  // Initialize existingMultisigs in order to know if the event received is related to a multisig
+  if (existingMultisigs.size === 0) {
+    await multisigRepository.findAll().then((multisigs) => {
+      for (let multisig of multisigs) {
+        existingMultisigs.set(multisig.addressHex, false);
+      }
+    });
   }
 
-  existingTransactions = new Set();
-
+  // Main loop to process the data
   for (const block of ctx.blocks) {
     for (const item of block.items) {
       if (item.name === "Contracts.ContractEmitted") {
         const contractAddressHex = item.event.args.contract;
         // Factory Events
         if (contractAddressHex === FACTORY_ADDRESS) {
-          const event = multisig_factory.decodeEvent(item.event.args.data);
-          if (event.__kind === "NewMultisig") {
-            const multisigAddress = ss58
-              .codec(SS58_PREFIX)
-              .encode(event.multisigAddress);
-            const multisigAddressHex = uint8ArrayToHexString(
-              event.multisigAddress
-            );
-
-            // Add to map
-            existingMultisigs.set(multisigAddressHex, true);
-
-            // Add to object
-            multisigData[multisigAddressHex] = {
-              id: item.event.id,
-              addressSS58: multisigAddress,
-              addressHex: multisigAddressHex,
-              deploymentSalt: uint8ArrayToHexString(event.salt),
-              threshold: event.threshold,
-              owners: event.ownersList.map((owner) =>
-                ss58.codec(SS58_PREFIX).encode(owner)
-              ),
-              creationTimestamp: new Date(block.header.timestamp),
-              creationBlockNumber: block.header.height,
-            };
-          }
+          handleMultisigFactoryEvents(item.event.args.data, block.header);
         }
         // Multisigs Events
         if (existingMultisigs.has(contractAddressHex)) {
@@ -176,6 +138,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
               id: newTransactionId,
               multisig: contractAddressHex,
               txId: event.txId,
+              proposer: ss58.codec(SS58_PREFIX).encode(event.proposer),
               contractAddress: ss58
                 .codec(SS58_PREFIX)
                 .encode(event.contractAddress),
@@ -214,6 +177,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
                 id: transactionId,
                 multisig: contractAddressHex,
                 txId: event.txId,
+                proposer: dbTx.proposer,
                 contractAddress: dbTx.contractAddress,
                 selector: dbTx.selector,
                 args: dbTx.args,
@@ -270,6 +234,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
                 id: transactionId,
                 multisig: contractAddressHex,
                 txId: event.txId,
+                proposer: dbTx.proposer,
                 contractAddress: dbTx.contractAddress,
                 selector: dbTx.selector,
                 args: dbTx.args,
@@ -308,6 +273,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
                 id: transactionId,
                 multisig: contractAddressHex,
                 txId: dbTx.txId,
+                proposer: dbTx.proposer,
                 contractAddress: dbTx.contractAddress,
                 selector: dbTx.selector,
                 args: dbTx.args,
@@ -350,6 +316,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
                 id: transactionId,
                 multisig: contractAddressHex,
                 txId: dbTx.txId,
+                proposer: dbTx.proposer,
                 contractAddress: dbTx.contractAddress,
                 selector: dbTx.selector,
                 args: dbTx.args,
@@ -386,8 +353,12 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     }
   }
 
+  // Save the data in the DB
   await multisigRepository.updateOrCreate(Object.values(multisigData));
   await transactionRepository.updateOrCreate(Object.values(transactionData));
   await approvalRepository.create(approvals);
   await rejectionRepository.create(rejections);
+
+  // TODO: Clean the data from memory
 });
+

@@ -32,7 +32,7 @@ export class MultisigRepository {
   }
 
   async findAll(): Promise<Multisig[]> {
-    return await this.ctx.store.findBy(Multisig, {});
+    return await this.ctx.store.findBy(Multisig, {});//TODO: Only return multisigs addressHex and not the whole multisig
   }
 
   async findByAddressHex(
