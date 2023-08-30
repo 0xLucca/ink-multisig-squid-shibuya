@@ -31,7 +31,13 @@ import {
   toEntityMapTx,
 } from "./common/helpers";
 import { TransactionRepository } from "./repository/TransactionRepository";
-import { ApprovalOrRejectionRecord, MultisigRecord, TransactionRecord } from "./common/types";
+import {
+  ApprovalOrRejectionRecord,
+  MultisigRecord,
+  TransactionRecord,
+} from "./common/types";
+import { ApprovalRepository } from "./repository/ApprovalRepository";
+import { RejectionRepository } from "./repository/RejectionRepository";
 
 const FACTORY_ADDRESS_SS58 = "bgzZgSNXh2wqApuFbP1pzs9MBWJUcGdzRbFSkZp3J4SPWgq";
 const FACTORY_ADDRESS = toHex(ss58.decode(FACTORY_ADDRESS_SS58).bytes);
@@ -58,18 +64,21 @@ const transactionData: Record<string, TransactionRecord> = {};
 const approvals: ApprovalOrRejectionRecord[] = [];
 const rejections: ApprovalOrRejectionRecord[] = [];
 
-// Repositories
-
 processor.run(new TypeormDatabase(), async (ctx) => {
   const multisigRepository = new MultisigRepository(ctx);
   const transactionRepository = new TransactionRepository(
     ctx,
     multisigRepository
   );
+  const approvalRepository = new ApprovalRepository(ctx, transactionRepository);
+  const rejectionRepository = new RejectionRepository(
+    ctx,
+    transactionRepository
+  );
 
   if (!existingMultisigs) {
-    existingMultisigs = await ctx.store
-      .findBy(Multisig, {})
+    existingMultisigs = await multisigRepository
+      .findAll()
       .then((m) => new Map(m.map((m) => [m.addressHex, false])));
   }
 
@@ -115,9 +124,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             // If multisigData doesn't have this multisig, it means that we need to fetch it from the DB
             if (!existingMultisigs.get(contractAddressHex)) {
               multisigData[contractAddressHex] = (
-                await ctx.store.findBy(Multisig, {
-                  addressHex: In([contractAddressHex]),
-                })
+                await multisigRepository.findByAddressHex([contractAddressHex])
               )[0]; //This must exist and be unique
 
               // Set map to true to indicate that we have the content on multisigData
@@ -131,9 +138,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             // If multisigData doesn't have this multisig, it means that we need to fetch it from the DB
             if (existingMultisigs.get(contractAddressHex) === false) {
               multisigData[contractAddressHex] = (
-                await ctx.store.findBy(Multisig, {
-                  id: In([contractAddressHex]),
-                })
+                await multisigRepository.findByAddressHex([contractAddressHex])
               )[0]; //This must exist and be unique
 
               // Set map to true to indicate that we have the content on multisigData
@@ -149,9 +154,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             // If multisigData doesn't have this multisig, it means that we need to fetch it from the DB
             if (existingMultisigs.get(contractAddressHex) === false) {
               multisigData[contractAddressHex] = (
-                await ctx.store.findBy(Multisig, {
-                  id: In([contractAddressHex]),
-                })
+                await multisigRepository.findByAddressHex([contractAddressHex])
               )[0]; //This must exist and be unique
 
               // Set map to true to indicate that we have the content on multisigData
@@ -205,7 +208,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             const transactionId = contractAddressHex + "-" + event.txId;
             if (!existingTransactions.has(transactionId)) {
               let dbTx = (
-                await ctx.store.findBy(Transaction, { id: In([transactionId]) })
+                await transactionRepository.findById([transactionId])
               )[0]; //This must exist and be unique
               transactionData[transactionId] = {
                 id: transactionId,
@@ -261,7 +264,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             const transactionId = contractAddressHex + "-" + event.txId;
             if (!existingTransactions.has(transactionId)) {
               let dbTx = (
-                await ctx.store.findBy(Transaction, { id: In([transactionId]) })
+                await transactionRepository.findById([transactionId])
               )[0]; //This must exist and be unique
               transactionData[transactionId] = {
                 id: transactionId,
@@ -299,7 +302,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             // Check if the tx is on memory. If not, fetch it from the DB
             if (!existingTransactions.has(transactionId)) {
               let dbTx = (
-                await ctx.store.findBy(Transaction, { id: In([transactionId]) })
+                await transactionRepository.findById([transactionId])
               )[0]; //This must exist and be unique
               transactionData[transactionId] = {
                 id: transactionId,
@@ -341,7 +344,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             // Check if the tx is on memory. If not, fetch it from the DB
             if (!existingTransactions.has(transactionId)) {
               let dbTx = (
-                await ctx.store.findBy(Transaction, { id: In([transactionId]) })
+                await transactionRepository.findById([transactionId])
               )[0]; //This must exist and be unique
               transactionData[transactionId] = {
                 id: transactionId,
@@ -385,66 +388,6 @@ processor.run(new TypeormDatabase(), async (ctx) => {
 
   await multisigRepository.updateOrCreate(Object.values(multisigData));
   await transactionRepository.updateOrCreate(Object.values(transactionData));
-  await createApprovals(ctx, approvals);
-  await createRejections(ctx, rejections);
+  await approvalRepository.create(approvals);
+  await rejectionRepository.create(rejections);
 });
-
-async function createApprovals(
-  ctx: Ctx,
-  approvals: ApprovalOrRejectionRecord[]
-) {
-  let txIds = new Set<string>();
-  for (let a of approvals) {
-    txIds.add(a.transaction);
-  }
-
-  let transactions = await ctx.store
-    .findBy(Transaction, { id: In([...txIds]) })
-    .then(toEntityMapTx);
-  let approvalsToSave: Approval[] = [];
-
-  approvalsToSave = approvals.map((a) => {
-    let tx = assertNotNull(transactions.get(a.transaction));
-    const approval = new Approval({
-      id: a.id,
-      transaction: tx,
-      approver: a.caller,
-      approvalTimestamp: a.timestamp,
-      approvalBlockNumber: a.blockNumber,
-    });
-
-    return approval;
-  });
-
-  await ctx.store.save(approvalsToSave);
-}
-
-async function createRejections(
-  ctx: Ctx,
-  rejections: ApprovalOrRejectionRecord[]
-) {
-  let txIds = new Set<string>();
-  for (let r of rejections) {
-    txIds.add(r.transaction);
-  }
-
-  let transactions = await ctx.store
-    .findBy(Transaction, { id: In([...txIds]) })
-    .then(toEntityMapTx);
-  let rejectionsToSave: Rejection[] = [];
-
-  rejectionsToSave = rejections.map((r) => {
-    let tx = assertNotNull(transactions.get(r.transaction));
-    const rejection = new Rejection({
-      id: r.id,
-      transaction: tx,
-      rejector: r.caller,
-      rejectionTimestamp: r.timestamp,
-      rejectionBlockNumber: r.blockNumber,
-    });
-
-    return rejection;
-  });
-
-  await ctx.store.save(rejectionsToSave);
-}

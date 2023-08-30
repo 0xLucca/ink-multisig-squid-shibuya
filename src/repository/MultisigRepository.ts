@@ -31,8 +31,12 @@ export class MultisigRepository {
     await this.ctx.store.save(multisigs);
   }
 
+  async findAll(): Promise<Multisig[]> {
+    return await this.ctx.store.findBy(Multisig, {});
+  }
+
   async findByAddressHex(
-    multisigAddressesHex: Set<string>
+    multisigAddressesHex: string[]
   ): Promise<Multisig[]> {
     return await this.ctx.store.findBy(Multisig, {
       addressHex: In([...multisigAddressesHex]),

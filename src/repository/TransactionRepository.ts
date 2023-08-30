@@ -4,6 +4,7 @@ import { Transaction } from "../model";
 import { toEntityMap } from "../common/helpers";
 import { MultisigRepository } from "./MultisigRepository";
 import { assertNotNull } from "@subsquid/substrate-processor";
+import { In } from "typeorm";
 
 export class TransactionRepository {
   private ctx: Ctx;
@@ -21,7 +22,7 @@ export class TransactionRepository {
     }
 
     let multisigs = await this.multisigRepository.findByAddressHex(
-        multisigAddressesHex
+        [...multisigAddressesHex]
     ).then(toEntityMap);
     let txs: Transaction[] = [];
 
@@ -47,5 +48,11 @@ export class TransactionRepository {
     });
 
     await this.ctx.store.save(txs);
+  }
+
+  async findById(ids: string[]): Promise<Transaction[]> {
+    return await this.ctx.store.findBy(Transaction, {
+      id: In([...ids]),
+    });
   }
 }
