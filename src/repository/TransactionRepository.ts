@@ -32,6 +32,7 @@ export class TransactionRepository {
         id: tx.id,
         multisig: multisig,
         txId: tx.txId,
+        proposer: tx.proposer,
         contractAddress: tx.contractAddress,
         selector: tx.selector,
         args: tx.args,

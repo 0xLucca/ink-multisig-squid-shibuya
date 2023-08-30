@@ -15,6 +15,7 @@ export interface TransactionRecord {
   id: string;
   multisig: string;
   txId: bigint;
+  proposer: string;
   contractAddress: string;
   selector: string;
   args: string;
