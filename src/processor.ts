@@ -19,7 +19,8 @@ import {
 } from "./common/entityRecords";
 import { MultisigFactoryEventHandler } from "./mappings/MultisigFactoryEventHandler";
 import { MultisigEventHandler } from "./mappings/MultisigEventHandler";
-import { FACTORY_ADDRESS, FACTORY_DEPLOYMENT_BLOCK} from "./common/constants";
+import { FACTORY_ADDRESS, FACTORY_DEPLOYMENT_BLOCK } from "./common/constants";
+import { Metadata } from "./model";
 
 // Define the processor
 const processor = new SubstrateBatchProcessor()
@@ -50,7 +51,10 @@ processor.run(new TypeormDatabase(), async (ctx) => {
 
   // Initialize handlers
   const multisigFactoryEventHandler = new MultisigFactoryEventHandler();
-  const multisigEventHandler = new MultisigEventHandler(multisigRepository, transactionRepository);
+  const multisigEventHandler = new MultisigEventHandler(
+    multisigRepository,
+    transactionRepository
+  );
 
   // Initialize existingMultisigs in order to know if the event received is related to a multisig
   if (existingMultisigs.size === 0) {
@@ -61,6 +65,18 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     });
   }
 
+  let metadata = await ctx.store.findBy(Metadata, {});
+  if (metadata[0]) {
+    // Convert the Uint8Array to a Buffer
+    const bufferData = Buffer.from(metadata[0].content);
+
+    // Decode the JSON data
+    const jsonData = JSON.parse(bufferData.toString());
+
+    // Print the JSON data
+    console.log("JSON Data:", jsonData);
+  }
+
   // Main loop to process the data
   for (const block of ctx.blocks) {
     for (const item of block.items) {
@@ -68,7 +84,10 @@ processor.run(new TypeormDatabase(), async (ctx) => {
         const contractAddressHex = item.event.args.contract;
         // Factory Events
         if (contractAddressHex === FACTORY_ADDRESS) {
-          multisigFactoryEventHandler.handleEvent(item.event.args.data, block.header);
+          multisigFactoryEventHandler.handleEvent(
+            item.event.args.data,
+            block.header
+          );
         }
         // Multisigs Events
         else if (existingMultisigs.has(contractAddressHex)) {
@@ -90,4 +109,3 @@ processor.run(new TypeormDatabase(), async (ctx) => {
 
   // TODO: Clean the data from the memory
 });
-

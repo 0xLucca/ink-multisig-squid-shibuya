@@ -59,3 +59,9 @@ type Rejection @entity {
   rejectionTimestamp: DateTime!
   rejectionBlockNumber: Int!
 }
+
+type Metadata @entity {
+  id: ID!
+  contractAddress: String!
+  content: Bytes!
+}
