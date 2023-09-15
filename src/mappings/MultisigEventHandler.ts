@@ -10,26 +10,34 @@ import { SubstrateBlock } from "@subsquid/substrate-processor";
 import * as multisig from "../abi/multisig";
 import { MultisigRepository } from "../repository/MultisigRepository";
 import { TransactionRepository } from "../repository/TransactionRepository";
+import { MetadataRepository } from "../repository/MetadataRepository";
 import * as ss58 from "@subsquid/ss58";
 import { SS58_PREFIX } from "../common/constants";
-import { uint8ArrayToHexString } from "../common/helpers";
+import {
+  uint8ArrayToHexString,
+  concatenateUint8Arrays,
+} from "../common/helpers";
 import { TransactionStatus } from "../model";
 import { ApprovalOrRejectionRecord } from "../common/types";
 import {
   MultisigError_EnvExecutionFailed,
   MultisigError_LangExecutionFailed,
 } from "../abi/multisig";
+import { decodeTx } from "../common/decode";
 
 export class MultisigEventHandler {
   private multisigRepository: MultisigRepository;
   private transactionRepository: TransactionRepository;
+  private metadataRepository: MetadataRepository;
 
   constructor(
     multisigRepository: MultisigRepository,
-    transactionRepository: TransactionRepository
+    transactionRepository: TransactionRepository,
+    metadataRepository: MetadataRepository
   ) {
     this.multisigRepository = multisigRepository;
     this.transactionRepository = transactionRepository;
+    this.metadataRepository = metadataRepository;
   }
 
   async handleEvent(
@@ -77,10 +85,9 @@ export class MultisigEventHandler {
       case "Approve":
         await this.handleApprove(contractAddressHex, event, blockHeader);
         break;
-        case "Reject":
-          await this.handleReject(contractAddressHex, event, blockHeader);
-          break;
-          
+      case "Reject":
+        await this.handleReject(contractAddressHex, event, blockHeader);
+        break;
     }
   }
 
@@ -122,9 +129,12 @@ export class MultisigEventHandler {
     event: multisig.Event_TransactionProposed,
     blockHeader: SubstrateBlock
   ) {
-    const newTransactionId = this.createTransactionId(contractAddressHex, event.txId);
+    const newTransactionId = this.createTransactionId(
+      contractAddressHex,
+      event.txId
+    );
     existingTransactions.add(newTransactionId);
-    transactionData[newTransactionId] = this.createTransactionData(
+    transactionData[newTransactionId] = await this.createTransactionData(
       newTransactionId,
       contractAddressHex,
       event,
@@ -135,12 +145,37 @@ export class MultisigEventHandler {
     const newApprovalId =
       newTransactionId + "-" + uint8ArrayToHexString(event.proposer);
 
-    approvals.push(this.createApprovalOrRejectionRecord(
-      newApprovalId,
-      newTransactionId,
-      event.proposer,
-      blockHeader
-    ));
+    approvals.push(
+      this.createApprovalOrRejectionRecord(
+        newApprovalId,
+        newTransactionId,
+        event.proposer,
+        blockHeader
+      )
+    );
+
+    try {
+      console.log("enter try");
+      const contractMetadata =
+        await this.metadataRepository.findByContractAddressHex([
+          contractAddressHex,
+        ]);
+      console.log("contractMetadata: ", contractMetadata);
+      //TODO: if contractMetadata is empty we should not decode the tx
+      if (contractMetadata[0]) {
+        const txData = uint8ArrayToHexString(
+          concatenateUint8Arrays([event.selector, event.input])
+        );
+        const decodedTx = decodeTx(contractMetadata[0], txData);
+        console.log("decodedTx: ", decodedTx);
+      } else {
+        console.log("contractMetadata is empty");
+      }
+      console.log("AAAAAAAA");
+      console.log("leave try");
+    } catch (e) {
+      console.log("error", e);
+    }
   }
 
   private async handleTransactionExecuted(
@@ -148,13 +183,18 @@ export class MultisigEventHandler {
     event: multisig.Event_TransactionExecuted,
     blockHeader: SubstrateBlock
   ) {
-    const transactionId = this.createTransactionId(contractAddressHex, event.txId);
+    const transactionId = this.createTransactionId(
+      contractAddressHex,
+      event.txId
+    );
     await this.fetchTransactionDataFromDBIfNeeded(transactionId);
 
     this.updateTransactionData(
       transactionId,
       blockHeader,
-      event.result.__kind === "Success" ? TransactionStatus.EXECUTED_SUCCESS : TransactionStatus.EXECUTED_FAILURE
+      event.result.__kind === "Success"
+        ? TransactionStatus.EXECUTED_SUCCESS
+        : TransactionStatus.EXECUTED_FAILURE
     );
 
     if (event.result.__kind === "Failed") {
@@ -167,7 +207,10 @@ export class MultisigEventHandler {
     event: multisig.Event_TransactionCancelled,
     blockHeader: SubstrateBlock
   ) {
-    const transactionId = this.createTransactionId(contractAddressHex, event.txId);
+    const transactionId = this.createTransactionId(
+      contractAddressHex,
+      event.txId
+    );
     await this.fetchTransactionDataFromDBIfNeeded(transactionId);
 
     this.updateTransactionData(
@@ -182,7 +225,10 @@ export class MultisigEventHandler {
     event: multisig.Event_Approve,
     blockHeader: SubstrateBlock
   ) {
-    const transactionId = this.createTransactionId(contractAddressHex, event.txId);
+    const transactionId = this.createTransactionId(
+      contractAddressHex,
+      event.txId
+    );
     await this.fetchTransactionDataFromDBIfNeeded(transactionId);
 
     transactionData[transactionId].approvalCount += 1;
@@ -190,12 +236,14 @@ export class MultisigEventHandler {
     const newApprovalId =
       transactionId + "-" + uint8ArrayToHexString(event.owner);
 
-    approvals.push(this.createApprovalOrRejectionRecord(
-      newApprovalId,
-      transactionId,
-      event.owner,
-      blockHeader
-    ));
+    approvals.push(
+      this.createApprovalOrRejectionRecord(
+        newApprovalId,
+        transactionId,
+        event.owner,
+        blockHeader
+      )
+    );
   }
 
   private async handleReject(
@@ -203,7 +251,10 @@ export class MultisigEventHandler {
     event: multisig.Event_Reject,
     blockHeader: SubstrateBlock
   ) {
-    const transactionId = this.createTransactionId(contractAddressHex, event.txId);
+    const transactionId = this.createTransactionId(
+      contractAddressHex,
+      event.txId
+    );
     await this.fetchTransactionDataFromDBIfNeeded(transactionId);
 
     transactionData[transactionId].rejectionCount += 1;
@@ -211,12 +262,14 @@ export class MultisigEventHandler {
     const newRejectionId =
       transactionId + "-" + uint8ArrayToHexString(event.owner);
 
-    rejections.push(this.createApprovalOrRejectionRecord(
-      newRejectionId,
-      transactionId,
-      event.owner,
-      blockHeader
-    ));
+    rejections.push(
+      this.createApprovalOrRejectionRecord(
+        newRejectionId,
+        transactionId,
+        event.owner,
+        blockHeader
+      )
+    );
   }
 
   private async fetchMultisigDataFromDBIfNeeded(contractAddressHex: string) {
@@ -239,14 +292,16 @@ export class MultisigEventHandler {
       let dbTx = (
         await this.transactionRepository.findById([transactionId])
       )[0]; //This must exist and be unique
-      transactionData[transactionId] = {...dbTx,
-        multisig: dbTx.multisig.addressHex
+      transactionData[transactionId] = {
+        ...dbTx,
+        multisig: dbTx.multisig.addressHex,
       };
       existingTransactions.add(transactionId);
     }
   }
 
-  private createTransactionData(
+  //TODO: remove async from this fn and extract the decoding process to a separate function
+  private async createTransactionData(
     newTransactionId: string,
     contractAddressHex: string,
     event: multisig.Event_TransactionProposed,
@@ -283,8 +338,10 @@ export class MultisigEventHandler {
     transactionData[transactionId].status = status;
   }
 
-  private getErrorMessage(result: multisig.Event_TransactionExecuted["result"]) {
-    if('__kind' in result.value){
+  private getErrorMessage(
+    result: multisig.Event_TransactionExecuted["result"]
+  ) {
+    if ("__kind" in result.value) {
       if (result.value.__kind === "EnvExecutionFailed") {
         let error = result.value as MultisigError_EnvExecutionFailed;
         return result.value.__kind + ": " + error.value;

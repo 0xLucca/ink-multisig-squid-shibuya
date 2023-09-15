@@ -21,6 +21,7 @@ import { MultisigFactoryEventHandler } from "./mappings/MultisigFactoryEventHand
 import { MultisigEventHandler } from "./mappings/MultisigEventHandler";
 import { FACTORY_ADDRESS, FACTORY_DEPLOYMENT_BLOCK } from "./common/constants";
 import { Metadata } from "./model";
+import { MetadataRepository } from "./repository/MetadataRepository";
 
 // Define the processor
 const processor = new SubstrateBatchProcessor()
@@ -48,12 +49,14 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     ctx,
     transactionRepository
   );
+  const metadataRepository = new MetadataRepository(ctx);
 
   // Initialize handlers
   const multisigFactoryEventHandler = new MultisigFactoryEventHandler();
   const multisigEventHandler = new MultisigEventHandler(
     multisigRepository,
-    transactionRepository
+    transactionRepository,
+    metadataRepository
   );
 
   // Initialize existingMultisigs in order to know if the event received is related to a multisig
@@ -65,17 +68,18 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     });
   }
 
-  let metadata = await ctx.store.findBy(Metadata, {});
-  if (metadata[0]) {
-    // Convert the Uint8Array to a Buffer
-    const bufferData = Buffer.from(metadata[0].content);
+  //TODO: Get the metadata from the DB
+  // let metadata = await ctx.store.findBy(Metadata, {});
+  // if (metadata[0]) {
+  //   // Convert the Uint8Array to a Buffer
+  //   const bufferData = Buffer.from(metadata[0].content);
 
-    // Decode the JSON data
-    const jsonData = JSON.parse(bufferData.toString());
+  //   // Decode the JSON data
+  //   const jsonData = JSON.parse(bufferData.toString());
 
-    // Print the JSON data
-    console.log("JSON Data:", jsonData);
-  }
+  //   // Print the JSON data
+  //   console.log("JSON Data:", jsonData);
+  // }
 
   // Main loop to process the data
   for (const block of ctx.blocks) {
@@ -84,13 +88,17 @@ processor.run(new TypeormDatabase(), async (ctx) => {
         const contractAddressHex = item.event.args.contract;
         // Factory Events
         if (contractAddressHex === FACTORY_ADDRESS) {
+          //TODO: remove this log
+          console.log("EVENT");
+          console.dir(item.event, { depth: null });
+
           multisigFactoryEventHandler.handleEvent(
             item.event.args.data,
             block.header
           );
         }
         // Multisigs Events
-        else if (existingMultisigs.has(contractAddressHex)) {
+        else if (existingMultisigs.has(contractAddressHex)) {       
           multisigEventHandler.handleEvent(
             contractAddressHex,
             item.event.args.data,
