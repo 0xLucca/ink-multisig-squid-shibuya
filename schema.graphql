@@ -23,16 +23,25 @@ type Multisig @entity {
   transactions: [Transaction!]! @derivedFrom(field: "multisig")
 }
 
+type ExternalTransactionData @entity{
+  txHash: String!
+  methodName: String!
+  args: Bytes!
+  timestamp: DateTime!
+}
+
 type Transaction @entity {
   id: ID!
+  proposalTxHash: String!
+  executionTxHash: String
   multisig: Multisig!
   txId: BigInt!
   proposer: String!
   contractAddress: String!
   selector: String!
-  #methodName: String! //TODO: implement
+  methodName: String
   args: String!
-  #argsHumanReadable: [String!]! //TODO: implement
+  argsHumanReadable: Bytes
   value: BigInt!
   status: TransactionStatus!
   error: String
@@ -40,6 +49,8 @@ type Transaction @entity {
   rejections: [Rejection!]! @derivedFrom(field: "transaction")
   approvalCount: Int!
   rejectionCount: Int!
+  creationTimestamp: DateTime!
+  creationBlockNumber: Int!
   lastUpdatedTimestamp: DateTime!
   lastUpdatedBlockNumber: Int!
 }
