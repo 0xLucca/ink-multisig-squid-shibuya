@@ -130,22 +130,20 @@ export class MultisigEventHandler {
     event: multisig.Event_TransactionProposed,
     txHash: string,
     blockHeader: SubstrateBlock
-  ) {
-    
-    const externalTransactionData = await this.externalTransactionDataRepository.findOneById(txHash);
+  ) {    
+    // const externalTransactionData = await this.externalTransactionDataRepository.findOneById(txHash);
     
     // Delete the external transaction data if it exists
-    if(externalTransactionData){
-      await this.externalTransactionDataRepository.deleteById(txHash);
-    }
+    // if(externalTransactionData){
+    //   await this.externalTransactionDataRepository.deleteById(txHash);
+    // }
+    const externalTransactionData = undefined;
 
     const newTransactionId = this.createTransactionId(contractAddressHex, event.txId);
-    existingTransactions.add(newTransactionId);
     console.log(
       "Transaction proposed: " +
         newTransactionId
     )
-   
     transactionData[newTransactionId] = this.createTransactionData(
       newTransactionId,
       contractAddressHex,
@@ -155,6 +153,7 @@ export class MultisigEventHandler {
       txHash,
       externalTransactionData
     );
+    existingTransactions.add(newTransactionId);
 
     const newApprovalId =
       newTransactionId + "-" + uint8ArrayToHexString(event.proposer);
