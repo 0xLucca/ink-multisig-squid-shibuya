@@ -74,7 +74,7 @@ processor.run(new TypeormDatabase(), async (ctx) => {
         }
         // Multisigs Events
         else if (existingMultisigs.has(contractAddressHex)) {
-          multisigEventHandler.handleEvent(
+          await multisigEventHandler.handleEvent(
             contractAddressHex,
             item.event.args.data,
             item.event.extrinsic.hash,
@@ -90,7 +90,5 @@ processor.run(new TypeormDatabase(), async (ctx) => {
   await transactionRepository.updateOrCreate(Object.values(transactionData));
   await approvalRepository.create(approvals);
   await rejectionRepository.create(rejections);
-
-  // TODO: Clean the data from the memory
 });
 

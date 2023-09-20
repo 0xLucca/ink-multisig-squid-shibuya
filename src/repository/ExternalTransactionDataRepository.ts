@@ -8,13 +8,9 @@ export class ExternalTransactionDataRepository {
     this.ctx = ctx;
   }
 
-  async findOneById(id: string): Promise<ExternalTransactionData | undefined> {
+  async findOneByTxHash(txHash: string): Promise<ExternalTransactionData | undefined> {
     return await this.ctx.store.findOneBy(ExternalTransactionData, {
-      id: id,
+      txHash: txHash,
     });
-  }
-
-  async deleteById(id: string): Promise<void> {
-    await this.ctx.store.remove(ExternalTransactionData, id);
   }
 }

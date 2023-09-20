@@ -24,6 +24,7 @@ type Multisig @entity {
 }
 
 type ExternalTransactionData @entity{
+  id: ID!
   txHash: String!
   methodName: String!
   args: Bytes!
