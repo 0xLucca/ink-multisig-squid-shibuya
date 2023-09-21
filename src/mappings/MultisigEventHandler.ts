@@ -130,9 +130,18 @@ export class MultisigEventHandler {
     txHash: string,
     blockHeader: SubstrateBlock
   ) {
+    // Fetch external transaction data from DB if it exists
     const externalTransactionData =
       await this.externalTransactionDataRepository.findOneByTxHash(txHash);
 
+    // Set it as used
+    if (externalTransactionData) {
+      await this.externalTransactionDataRepository.setUsed(
+        externalTransactionData
+      );
+    }
+
+    // Create transaction data
     const newTransactionId = this.createTransactionId(
       contractAddressHex,
       event.txId
@@ -147,6 +156,8 @@ export class MultisigEventHandler {
       externalTransactionData
     );
     existingTransactions.add(newTransactionId);
+
+    // Create approval data
     const newApprovalId =
       newTransactionId + "-" + uint8ArrayToHexString(event.proposer);
 

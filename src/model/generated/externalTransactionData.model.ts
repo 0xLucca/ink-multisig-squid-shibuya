@@ -19,5 +19,8 @@ export class ExternalTransactionData {
     args!: Uint8Array
 
     @Column_("timestamp with time zone", {nullable: false})
-    timestamp!: Date
+    creationTimestamp!: Date
+
+    @Column_("bool", {nullable: false})
+    inUse!: boolean
 }

@@ -28,7 +28,8 @@ type ExternalTransactionData @entity{
   txHash: String!
   methodName: String!
   args: Bytes!
-  timestamp: DateTime!
+  creationTimestamp: DateTime!
+  inUse: Boolean!
 }
 
 type Transaction @entity {
