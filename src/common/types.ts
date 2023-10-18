@@ -20,9 +20,7 @@ export interface TransactionRecord {
   proposer: string;
   contractAddress: string;
   selector: string;
-  methodName: string | null | undefined;
   args: string;
-  argsHumanReadable: Uint8Array | null | undefined;
   value: bigint;
   externalTransactionData: string | null | undefined;
   status: TransactionStatus;

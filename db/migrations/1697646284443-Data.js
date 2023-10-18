@@ -1,5 +1,5 @@
-module.exports = class Data1696339992426 {
-    name = 'Data1696339992426'
+module.exports = class Data1697646284443 {
+    name = 'Data1697646284443'
 
     async up(db) {
         await db.query(`CREATE TABLE "multisig_factory" ("id" character varying NOT NULL, "address" text NOT NULL, "code_hash" text NOT NULL, CONSTRAINT "PK_db09f4572047ff8911b9560d3d6" PRIMARY KEY ("id"))`)
@@ -12,6 +12,7 @@ module.exports = class Data1696339992426 {
         await db.query(`CREATE INDEX "IDX_91bafcb83842b86c470d514387" ON "transaction" ("multisig_id") `)
         await db.query(`CREATE INDEX "IDX_fffa11daf6206db480ae61ad45" ON "transaction" ("external_transaction_data_id") `)
         await db.query(`CREATE TABLE "multisig" ("id" character varying NOT NULL, "address_ss58" text NOT NULL, "address_hex" text NOT NULL, "deployment_salt" text NOT NULL, "threshold" integer NOT NULL, "owners" text array NOT NULL, "creation_timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "creation_block_number" integer NOT NULL, CONSTRAINT "PK_ca0822446a16f9665878a4e3cb2" PRIMARY KEY ("id"))`)
+        await db.query(`CREATE TABLE "transfer" ("id" character varying NOT NULL, "from" text NOT NULL, "to" text NOT NULL, "value" numeric NOT NULL, "transfer_type" character varying(6) NOT NULL, "token_address" text, "token_decimals" integer NOT NULL, "creation_timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "creation_block_number" integer NOT NULL, CONSTRAINT "PK_fd9ddbdd49a17afcbe014401295" PRIMARY KEY ("id"))`)
         await db.query(`ALTER TABLE "approval" ADD CONSTRAINT "FK_966bae22f0adf85b1ed0b482651" FOREIGN KEY ("transaction_id") REFERENCES "transaction"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "rejection" ADD CONSTRAINT "FK_a5a98484cf3de1b003f6e157525" FOREIGN KEY ("transaction_id") REFERENCES "transaction"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "transaction" ADD CONSTRAINT "FK_91bafcb83842b86c470d5143870" FOREIGN KEY ("multisig_id") REFERENCES "multisig"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
@@ -29,6 +30,7 @@ module.exports = class Data1696339992426 {
         await db.query(`DROP INDEX "public"."IDX_91bafcb83842b86c470d514387"`)
         await db.query(`DROP INDEX "public"."IDX_fffa11daf6206db480ae61ad45"`)
         await db.query(`DROP TABLE "multisig"`)
+        await db.query(`DROP TABLE "transfer"`)
         await db.query(`ALTER TABLE "approval" DROP CONSTRAINT "FK_966bae22f0adf85b1ed0b482651"`)
         await db.query(`ALTER TABLE "rejection" DROP CONSTRAINT "FK_a5a98484cf3de1b003f6e157525"`)
         await db.query(`ALTER TABLE "transaction" DROP CONSTRAINT "FK_91bafcb83842b86c470d5143870"`)

@@ -45,7 +45,6 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     multisigRepository,
     externalTransactionDataRepository
   );
-  const externalTransactionDataRepository = new ExternalTransactionDataRepository(ctx);
   const approvalRepository = new ApprovalRepository(ctx, transactionRepository);
   const rejectionRepository = new RejectionRepository(
     ctx,
