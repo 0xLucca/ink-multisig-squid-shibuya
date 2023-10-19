@@ -1,4 +1,4 @@
-import { TransactionStatus } from "../model";
+import { TransactionStatus, TransferType } from "../model";
 
 export interface MultisigRecord {
   id: string;
@@ -39,4 +39,15 @@ export interface ApprovalOrRejectionRecord {
     caller: string;
     timestamp: Date;
     blockNumber: number;
+  }
+
+  export interface TransferRecord {
+    id: string;
+    multisig: string;
+    from: string,
+    to: string,
+    value: bigint,
+    transferType: TransferType.NATIVE,
+    creationTimestamp: Date,
+    creationBlockNumber: number,
   }

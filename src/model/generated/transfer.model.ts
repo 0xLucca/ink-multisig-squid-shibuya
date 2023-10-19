@@ -1,5 +1,6 @@
-import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_} from "typeorm"
+import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, ManyToOne as ManyToOne_, Index as Index_} from "typeorm"
 import * as marshal from "./marshal"
+import {Multisig} from "./multisig.model"
 import {TransferType} from "./_transferType"
 
 @Entity_()
@@ -10,6 +11,10 @@ export class Transfer {
 
     @PrimaryColumn_()
     id!: string
+
+    @Index_()
+    @ManyToOne_(() => Multisig, {nullable: true})
+    multisig!: Multisig
 
     @Column_("text", {nullable: false})
     from!: string
@@ -26,8 +31,8 @@ export class Transfer {
     @Column_("text", {nullable: true})
     tokenAddress!: string | undefined | null
 
-    @Column_("int4", {nullable: false})
-    tokenDecimals!: number
+    @Column_("int4", {nullable: true})
+    tokenDecimals!: number | undefined | null
 
     @Column_("timestamp with time zone", {nullable: false})
     creationTimestamp!: Date
