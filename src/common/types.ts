@@ -47,7 +47,7 @@ export interface ApprovalOrRejectionRecord {
     from: string,
     to: string,
     value: bigint,
-    transferType: TransferType.NATIVE,
+    transferType: TransferType,
     creationTimestamp: Date,
     creationBlockNumber: number,
   }

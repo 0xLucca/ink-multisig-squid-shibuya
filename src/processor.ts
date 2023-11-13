@@ -22,7 +22,7 @@ import {
 } from "./common/entityRecords";
 import { MultisigFactoryEventHandler } from "./mappings/MultisigFactoryEventHandler";
 import { MultisigEventHandler } from "./mappings/MultisigEventHandler";
-import { FACTORY_ADDRESS, FACTORY_DEPLOYMENT_BLOCK } from "./common/constants";
+import { FACTORY_ADDRESS, FACTORY_DEPLOYMENT_BLOCK, PSP22_TRANSFER_FROM_SELECTOR, PSP22_TRANSFER_SELECTOR } from "./common/constants";
 import { TransferHandler } from "./mappings/TransferHandler";
 
 // Define the processor
@@ -85,13 +85,16 @@ processor.run(new TypeormDatabase(), async (ctx) => {
   }
 
   // Main loop to process the data
-  let a = 0;
   for (const block of ctx.blocks) {
     for (const item of block.items) {
       if (item.name === "Contracts.ContractEmitted") {
         const contractAddressHex = item.event.args.contract;
+        const messageSelector = item.event.call.args.data.slice(0, 10);
+        
         // Factory Events
         if (contractAddressHex === FACTORY_ADDRESS) {
+          //console.dir(item, { depth: null })
+          //console.log("message selector: ", messageSelector)
           multisigFactoryEventHandler.handleEvent(
             item.event.args.data,
             block.header
@@ -106,8 +109,28 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             block.header
           );
         }
-      } else if (item.name === "Balances.Transfer") {
-        let multisigAddress;
+        // PSP22 Transfers
+        else if (messageSelector === PSP22_TRANSFER_SELECTOR || messageSelector === PSP22_TRANSFER_FROM_SELECTOR) {
+            
+          transferHandler.handlePSP22Transfer(
+              contractAddressHex,
+              item.event.call.args.data,
+              item.event.extrinsic.hash,
+              block.header
+            );
+        }
+        else {
+          // console.log("--------------------")
+          // console.log("message selector: ")
+          // console.log(messageSelector)
+          // console.log("transfer selector: ")
+          // console.log(PSP22_TRANSFER_SELECTOR)
+          // console.log("transfer from selector: ")
+          // console.log(PSP22_TRANSFER_FROM_SELECTOR)
+        }
+      } 
+      // Native Transfers
+      else if (item.name === "Balances.Transfer") {
         const { from, to } = item.event.args;
 
         if (existingMultisigs.has(from) || existingMultisigs.has(to)) {
