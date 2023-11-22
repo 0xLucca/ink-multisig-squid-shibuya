@@ -18,7 +18,9 @@ export const processor = new SubstrateBatchProcessor()
       url: "wss://rpc.shibuya.astar.network",
     },
   })
-  .addContractsContractEmitted({})
+  .addContractsContractEmitted({
+    extrinsic: true,
+  })
   .addEvent({
     name: ["Balances.Transfer"],
     extrinsic: true,

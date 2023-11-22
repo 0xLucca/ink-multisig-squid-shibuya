@@ -22,14 +22,14 @@ export class MultisigFactoryEventHandler {
     const multisigAddress = ss58
       .codec(SS58_PREFIX)
       .encode(event.multisigAddress);
-    const multisigAddressHex = uint8ArrayToHexString(event.multisigAddress);
+    const multisigAddressHex = event.multisigAddress.toString();
 
     // Add to record
     multisigData[multisigAddressHex] = {
       id: multisigAddressHex,
       addressSS58: multisigAddress,
       addressHex: multisigAddressHex,
-      deploymentSalt: uint8ArrayToHexString(event.salt),
+      deploymentSalt: event.salt.toString(),
       threshold: event.threshold,
       owners: event.ownersList.map((owner) =>
         ss58.codec(SS58_PREFIX).encode(owner)

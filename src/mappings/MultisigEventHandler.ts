@@ -158,8 +158,7 @@ export class MultisigEventHandler {
     existingTransactions.add(newTransactionId);
 
     // Create approval data
-    const newApprovalId =
-      newTransactionId + "-" + uint8ArrayToHexString(event.proposer);
+    const newApprovalId = newTransactionId + "-" + event.proposer.toString();
 
     approvals.push(
       this.createApprovalOrRejectionRecord(
@@ -231,8 +230,7 @@ export class MultisigEventHandler {
 
     transactionData[transactionId].approvalCount += 1;
 
-    const newApprovalId =
-      transactionId + "-" + uint8ArrayToHexString(event.owner);
+    const newApprovalId = transactionId + "-" + event.owner.toString();
 
     approvals.push(
       this.createApprovalOrRejectionRecord(
@@ -257,8 +255,7 @@ export class MultisigEventHandler {
 
     transactionData[transactionId].rejectionCount += 1;
 
-    const newRejectionId =
-      transactionId + "-" + uint8ArrayToHexString(event.owner);
+    const newRejectionId = transactionId + "-" + event.owner.toString();
 
     rejections.push(
       this.createApprovalOrRejectionRecord(
@@ -317,8 +314,8 @@ export class MultisigEventHandler {
       txId: event.txId,
       proposer: ss58.codec(SS58_PREFIX).encode(event.proposer),
       contractAddress: ss58.codec(SS58_PREFIX).encode(event.contractAddress),
-      selector: uint8ArrayToHexString(event.selector),
-      args: uint8ArrayToHexString(event.input),
+      selector: event.selector.toString(),
+      args: event.input.toString(),
       value: event.transferredValue,
       externalTransactionData: externalTransactionData?.id,
       status: status,

@@ -54,7 +54,6 @@ processor.run(new TypeormDatabase(), async (ctx) => {
       }
     });
   }
-  
   // Main loop to process the data
   for (const block of ctx.blocks) {
     for (const event of block.events) {
