@@ -15,7 +15,7 @@ export const processor = new SubstrateBatchProcessor()
   .setDataSource({
     archive: lookupArchive("shibuya", { release: "ArrowSquid" }),
     chain: {
-      url: "wss://rpc.shibuya.astar.network",
+      url: "wss://shibuya-rpc.dwellir.com",
     },
   })
   .addContractsContractEmitted({
@@ -25,6 +25,11 @@ export const processor = new SubstrateBatchProcessor()
     name: ["Balances.Transfer"],
     extrinsic: true,
   })
+  .addEvent({
+    name: ["Contracts.Called"],
+    extrinsic: true,
+    call: true,
+  })
   .setFields({
     block: {
       timestamp: true,
@@ -32,9 +37,13 @@ export const processor = new SubstrateBatchProcessor()
     extrinsic: {
       hash: true,
     },
+    call: {
+      args: true,
+    },
   })
   .setBlockRange({
-    from: FACTORY_DEPLOYMENT_BLOCK,
+    from: 
+    5173584,
   })
   //.useArchiveOnly();
 
