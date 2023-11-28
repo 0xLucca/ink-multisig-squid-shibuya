@@ -43,35 +43,34 @@ export class TransferHandler {
   ) {
     const message = psp22.decodeMessage(callData);
     let from;
-    if (message.__kind == "PSP22_transfer") {
-      from = ss58.codec(SS58_PREFIX).encode(caller);
-    } else if (message.__kind == "PSP22_transfer_from") {
-      from = ss58.codec(SS58_PREFIX).encode(message.from.toString());
+
+    switch (message.__kind) {
+      case "PSP22_transfer":
+        from = ss58.codec(SS58_PREFIX).encode(caller);
+        break;
+      case "PSP22_transfer_from":
+        from = ss58.codec(SS58_PREFIX).encode(message.from.toString());
+        break;
+      default:
+        // This case should never happen because we already checked the selector
+        return;
     }
+    
+    const to = ss58.codec(SS58_PREFIX).encode(message.to.toString());
 
-    if (
-      message.__kind == "PSP22_transfer" ||
-      message.__kind == "PSP22_transfer_from"
-    ) {
-      const to = message.to.toString();
-
-      if (existingMultisigs.has(to) || existingMultisigs.has(from!)) {
-        const multisigAddress = existingMultisigs.has(from!) ? from : to;
-        const transfer = {
-          id: txHash,
-          multisig: multisigAddress,
-          from: ss58.codec(SS58_PREFIX).encode(from!),
-          to: ss58.codec(SS58_PREFIX).encode(to),
-          value: BigInt(message.value),
-          transferType: TransferType.NATIVE,
-          creationTimestamp: new Date(blockHeader.timestamp!),
-          creationBlockNumber: blockHeader.height,
-        } as TransferRecord;
-
-        transferRecords.push(transfer);
-      }
+    if (existingMultisigs.has(to) || existingMultisigs.has(from!)) {
+      const transfer = {
+        id: txHash,
+        multisig: existingMultisigs.has(from) ? from : to,
+        from,
+        to,
+        value: BigInt(message.value),
+        transferType: TransferType.PSP22,
+        tokenAddress: ss58.codec(SS58_PREFIX).encode(tokenAddressHex),
+        creationTimestamp: new Date(blockHeader.timestamp!),
+        creationBlockNumber: blockHeader.height,
+      } as TransferRecord;
+      transferRecords.push(transfer);
     }
-
-    console.log(message);
   }
 }

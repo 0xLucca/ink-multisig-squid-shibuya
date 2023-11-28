@@ -48,6 +48,8 @@ export interface TransferRecord {
   to: string;
   value: bigint;
   transferType: TransferType;
+  tokenAddress: string | null | undefined;
+  tokenDecimals: number | null | undefined;
   creationTimestamp: Date;
   creationBlockNumber: number;
 }

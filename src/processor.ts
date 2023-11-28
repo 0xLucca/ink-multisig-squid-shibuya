@@ -42,10 +42,9 @@ export const processor = new SubstrateBatchProcessor()
     },
   })
   .setBlockRange({
-    from: 
-    5173584,
-  })
-  //.useArchiveOnly();
+    from: FACTORY_DEPLOYMENT_BLOCK,
+  });
+//.useArchiveOnly();
 
 export type Fields = SubstrateBatchProcessorFields<typeof processor>;
 export type Block = BlockHeader<Fields>;

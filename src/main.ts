@@ -15,10 +15,13 @@ import {
 } from "./common/entityRecords";
 import { MultisigFactoryEventHandler } from "./mappings/MultisigFactoryEventHandler";
 import { MultisigEventHandler } from "./mappings/MultisigEventHandler";
-import { FACTORY_ADDRESS, PSP22_TRANSFER_FROM_SELECTOR, PSP22_TRANSFER_SELECTOR } from "./common/constants";
+import {
+  FACTORY_ADDRESS,
+  PSP22_TRANSFER_FROM_SELECTOR,
+  PSP22_TRANSFER_SELECTOR,
+} from "./common/constants";
 import { processor } from "./processor";
 import { TransferHandler } from "./mappings/TransferHandler";
-import * as ss58 from "@subsquid/ss58";
 
 // Run the processor
 processor.run(new TypeormDatabase(), async (ctx) => {
@@ -60,87 +63,53 @@ processor.run(new TypeormDatabase(), async (ctx) => {
     for (const event of block.events) {
       if (event.name === "Contracts.ContractEmitted") {
         const contractAddressHex = event.args.contract;
-        
+
         // Factory Events
-        //   if (contractAddressHex === FACTORY_ADDRESS) {
-        //     multisigFactoryEventHandler.handleEvent(
-        //       event.args.data,
-        //       block.header
-        //     );
-        //   }
-        //   // Multisigs Events
-        //   else if (existingMultisigs.has(contractAddressHex)) {
-        //     await multisigEventHandler.handleEvent(
-        //       contractAddressHex,
-        //       event.args.data,
-        //       event.extrinsic!.hash,
-        //       block.header
-        //     );
-        //   }
-        // } else if (event.name === "Balances.Transfer") {
-        //   const { from, to } = event.args;
+        if (contractAddressHex === FACTORY_ADDRESS) {
+          multisigFactoryEventHandler.handleEvent(
+            event.args.data,
+            block.header
+          );
+        }
+        // Multisigs Events
+        else if (existingMultisigs.has(contractAddressHex)) {
+          await multisigEventHandler.handleEvent(
+            contractAddressHex,
+            event.args.data,
+            event.extrinsic!.hash,
+            block.header
+          );
+        }
+      } else if (event.name === "Balances.Transfer") {
+        const { from, to } = event.args;
 
-        //   if (existingMultisigs.has(from) || existingMultisigs.has(to)) {
-        //     const multisigAddress = existingMultisigs.has(from) ? from : to;
+        if (existingMultisigs.has(from) || existingMultisigs.has(to)) {
+          const multisigAddress = existingMultisigs.has(from) ? from : to;
 
-        //     transferHandler.handleNativeTransfer(
-        //       event.args,
-        //       multisigAddress,
-        //       event.extrinsic!.hash,
-        //       block.header
-        //     );
-        //   }
-        // }
-      }
-      if (event.name === "Contracts.Called") {
+          transferHandler.handleNativeTransfer(
+            event.args,
+            multisigAddress,
+            event.extrinsic!.hash,
+            block.header
+          );
+        }
+      } else if (event.name === "Contracts.Called") {
+        // TODO: Check one contract with status Failed
         const contractAddressHex = event.args.contract;
         const messageSelector = event.call!.args.data.slice(0, 10);
-        
-        if (messageSelector === PSP22_TRANSFER_SELECTOR || messageSelector === PSP22_TRANSFER_FROM_SELECTOR){
-          
-          // console.log("MyToken Tx");
-          // console.dir(event);
-          // console.log(event.call);
-          // console.log(event.extrinsic);
 
+        if (
+          messageSelector === PSP22_TRANSFER_SELECTOR ||
+          messageSelector === PSP22_TRANSFER_FROM_SELECTOR
+        ) {
           transferHandler.handlePSP22Transfer(
             contractAddressHex,
-            event.args.caller,
+            event.args.caller.value,
             event.call?.args.data,
             event.extrinsic!.hash,
             block.header
           );
         }
-        // Factory Events
-        //   if (contractAddressHex === FACTORY_ADDRESS) {
-        //     multisigFactoryEventHandler.handleEvent(
-        //       event.args.data,
-        //       block.header
-        //     );
-        //   }
-        //   // Multisigs Events
-        //   else if (existingMultisigs.has(contractAddressHex)) {
-        //     await multisigEventHandler.handleEvent(
-        //       contractAddressHex,
-        //       event.args.data,
-        //       event.extrinsic!.hash,
-        //       block.header
-        //     );
-        //   }
-        // } else if (event.name === "Balances.Transfer") {
-        //   const { from, to } = event.args;
-
-        //   if (existingMultisigs.has(from) || existingMultisigs.has(to)) {
-        //     const multisigAddress = existingMultisigs.has(from) ? from : to;
-
-        //     transferHandler.handleNativeTransfer(
-        //       event.args,
-        //       multisigAddress,
-        //       event.extrinsic!.hash,
-        //       block.header
-        //     );
-        //   }
-        // }
       }
     }
   }
