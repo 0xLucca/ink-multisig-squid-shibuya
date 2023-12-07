@@ -1,7 +1,9 @@
+require("dotenv/config");
 module.exports = class Data1697718498825 {
     name = 'Data1697718498825'
 
     async up(db) {
+        // Init tables
         await db.query(`CREATE TABLE "multisig_factory" ("id" character varying NOT NULL, "address" text NOT NULL, "code_hash" text NOT NULL, CONSTRAINT "PK_db09f4572047ff8911b9560d3d6" PRIMARY KEY ("id"))`)
         await db.query(`CREATE TABLE "external_transaction_data" ("id" character varying NOT NULL, "method_name" text NOT NULL, "args" bytea NOT NULL, "creation_timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "in_use" boolean NOT NULL, CONSTRAINT "PK_caf6c1ca405ec201369711fe6bf" PRIMARY KEY ("id"))`)
         await db.query(`CREATE TABLE "approval" ("id" character varying NOT NULL, "approver" text NOT NULL, "approval_timestamp" TIMESTAMP WITH TIME ZONE NOT NULL, "approval_block_number" integer NOT NULL, "transaction_id" character varying, CONSTRAINT "PK_97bfd1cd9dff3c1302229da6b5c" PRIMARY KEY ("id"))`)
@@ -19,6 +21,11 @@ module.exports = class Data1697718498825 {
         await db.query(`ALTER TABLE "transaction" ADD CONSTRAINT "FK_91bafcb83842b86c470d5143870" FOREIGN KEY ("multisig_id") REFERENCES "multisig"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "transaction" ADD CONSTRAINT "FK_fffa11daf6206db480ae61ad45c" FOREIGN KEY ("external_transaction_data_id") REFERENCES "external_transaction_data"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
         await db.query(`ALTER TABLE "transfer" ADD CONSTRAINT "FK_6c544577a498cabdbdf1bcb9b81" FOREIGN KEY ("multisig_id") REFERENCES "multisig"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
+        
+        // Create appuser
+        await db.query(`CREATE USER ${process.env.DB_APPUSER_NAME || "appuser"} WITH PASSWORD '${process.env.DB_APPUSER_PASSWORD || "appuser"}'`)
+        await db.query(`GRANT USAGE ON SCHEMA public TO appuser`)
+        await db.query(`GRANT SELECT, INSERT ON TABLE external_transaction_data TO appuser`)
     }
 
     async down(db) {
