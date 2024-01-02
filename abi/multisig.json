@@ -1,10 +1,10 @@
 {
   "source": {
-    "hash": "0x666d9f46a96e595c8a26ddf51dd4eada8344b1f1872566d587883b604e606c97",
+    "hash": "0xfcbdb7b0f57450a39e13def41579281164855507ebf89eb27be983a1d91e22a1",
     "language": "ink! 4.2.0",
     "compiler": "rustc 1.69.0-nightly",
     "build_info": {
-      "build_mode": "Release",
+      "build_mode": "Debug",
       "cargo_contract_version": "3.0.1",
       "rust_toolchain": "nightly-aarch64-unknown-linux-gnu",
       "wasm_opt_settings": {
@@ -2032,8 +2032,8 @@
               {
                 "fields": [
                   {
-                    "type": 7,
-                    "typeName": "Vec<u8>"
+                    "type": 4,
+                    "typeName": "()"
                   }
                 ],
                 "index": 0,

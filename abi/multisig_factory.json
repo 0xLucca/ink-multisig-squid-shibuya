@@ -1,10 +1,10 @@
 {
   "source": {
-    "hash": "0x0052c0c0070d444f20ce50f92eb4bd01ec20d5494acb2900c2bd4a5a43f71bec",
+    "hash": "0x8597f12c72f1baea9e470b8ba974d8dbf74bb4993c79a7d4b81ec2c0340f5e8e",
     "language": "ink! 4.2.1",
     "compiler": "rustc 1.69.0-nightly",
     "build_info": {
-      "build_mode": "Release",
+      "build_mode": "Debug",
       "cargo_contract_version": "3.0.1",
       "rust_toolchain": "nightly-aarch64-unknown-linux-gnu",
       "wasm_opt_settings": {
@@ -16,10 +16,7 @@
   "contract": {
     "name": "multisig-factory",
     "version": "0.1.0",
-    "authors": [
-      "0xLucca",
-      "GabrielCamba"
-    ]
+    "authors": ["0xLucca", "GabrielCamba"]
   },
   "spec": {
     "constructors": [
@@ -28,9 +25,7 @@
           {
             "label": "codehash",
             "type": {
-              "displayName": [
-                "Hash"
-              ],
+              "displayName": ["Hash"],
               "type": 0
             }
           }
@@ -42,10 +37,7 @@
         "label": "new",
         "payable": false,
         "returnType": {
-          "displayName": [
-            "ink_primitives",
-            "ConstructorResult"
-          ],
+          "displayName": ["ink_primitives", "ConstructorResult"],
           "type": 3
         },
         "selector": "0x9bae9d5e"
@@ -54,40 +46,28 @@
     "docs": [],
     "environment": {
       "accountId": {
-        "displayName": [
-          "AccountId"
-        ],
+        "displayName": ["AccountId"],
         "type": 8
       },
       "balance": {
-        "displayName": [
-          "Balance"
-        ],
+        "displayName": ["Balance"],
         "type": 14
       },
       "blockNumber": {
-        "displayName": [
-          "BlockNumber"
-        ],
+        "displayName": ["BlockNumber"],
         "type": 16
       },
       "chainExtension": {
-        "displayName": [
-          "ChainExtension"
-        ],
+        "displayName": ["ChainExtension"],
         "type": 17
       },
       "hash": {
-        "displayName": [
-          "Hash"
-        ],
+        "displayName": ["Hash"],
         "type": 0
       },
       "maxEventTopics": 4,
       "timestamp": {
-        "displayName": [
-          "Timestamp"
-        ],
+        "displayName": ["Timestamp"],
         "type": 15
       }
     },
@@ -95,54 +75,38 @@
       {
         "args": [
           {
-            "docs": [
-              " The address of the deployed MultiSig contract."
-            ],
+            "docs": [" The address of the deployed MultiSig contract."],
             "indexed": true,
             "label": "multisig_address",
             "type": {
-              "displayName": [
-                "AccountId"
-              ],
+              "displayName": ["AccountId"],
               "type": 8
             }
           },
           {
-            "docs": [
-              " The threshold of the deployed MultiSig contract."
-            ],
+            "docs": [" The threshold of the deployed MultiSig contract."],
             "indexed": false,
             "label": "threshold",
             "type": {
-              "displayName": [
-                "u8"
-              ],
+              "displayName": ["u8"],
               "type": 2
             }
           },
           {
-            "docs": [
-              " The list of owners of the deployed MultiSig contract."
-            ],
+            "docs": [" The list of owners of the deployed MultiSig contract."],
             "indexed": false,
             "label": "owners_list",
             "type": {
-              "displayName": [
-                "Vec"
-              ],
+              "displayName": ["Vec"],
               "type": 7
             }
           },
           {
-            "docs": [
-              " The salt used to deploy the MultiSig contract."
-            ],
+            "docs": [" The salt used to deploy the MultiSig contract."],
             "indexed": false,
             "label": "salt",
             "type": {
-              "displayName": [
-                "Vec"
-              ],
+              "displayName": ["Vec"],
               "type": 9
             }
           }
@@ -154,10 +118,7 @@
       }
     ],
     "lang_error": {
-      "displayName": [
-        "ink",
-        "LangError"
-      ],
+      "displayName": ["ink", "LangError"],
       "type": 6
     },
     "messages": [
@@ -166,27 +127,21 @@
           {
             "label": "threshold",
             "type": {
-              "displayName": [
-                "u8"
-              ],
+              "displayName": ["u8"],
               "type": 2
             }
           },
           {
             "label": "owners_list",
             "type": {
-              "displayName": [
-                "Vec"
-              ],
+              "displayName": ["Vec"],
               "type": 7
             }
           },
           {
             "label": "salt",
             "type": {
-              "displayName": [
-                "Vec"
-              ],
+              "displayName": ["Vec"],
               "type": 9
             }
           }
@@ -203,10 +158,7 @@
         "mutates": true,
         "payable": false,
         "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
+          "displayName": ["ink", "MessageResult"],
           "type": 10
         },
         "selector": "0xf72d4700"
@@ -248,11 +200,7 @@
             ]
           }
         },
-        "path": [
-          "ink_primitives",
-          "types",
-          "Hash"
-        ]
+        "path": ["ink_primitives", "types", "Hash"]
       }
     },
     {
@@ -311,9 +259,7 @@
             "type": 6
           }
         ],
-        "path": [
-          "Result"
-        ]
+        "path": ["Result"]
       }
     },
     {
@@ -353,9 +299,7 @@
             "type": 5
           }
         ],
-        "path": [
-          "Result"
-        ]
+        "path": ["Result"]
       }
     },
     {
@@ -379,10 +323,7 @@
             ]
           }
         },
-        "path": [
-          "ink_primitives",
-          "LangError"
-        ]
+        "path": ["ink_primitives", "LangError"]
       }
     },
     {
@@ -408,11 +349,7 @@
             ]
           }
         },
-        "path": [
-          "ink_primitives",
-          "types",
-          "AccountId"
-        ]
+        "path": ["ink_primitives", "types", "AccountId"]
       }
     },
     {
@@ -462,9 +399,7 @@
             "type": 6
           }
         ],
-        "path": [
-          "Result"
-        ]
+        "path": ["Result"]
       }
     },
     {
@@ -504,9 +439,7 @@
             "type": 12
           }
         ],
-        "path": [
-          "Result"
-        ]
+        "path": ["Result"]
       }
     },
     {
@@ -586,11 +519,7 @@
             ]
           }
         },
-        "path": [
-          "multisig",
-          "multisig",
-          "MultisigError"
-        ]
+        "path": ["multisig", "multisig", "MultisigError"]
       }
     },
     {
@@ -631,11 +560,7 @@
         "def": {
           "variant": {}
         },
-        "path": [
-          "ink_env",
-          "types",
-          "NoChainExtension"
-        ]
+        "path": ["ink_env", "types", "NoChainExtension"]
       }
     }
   ],
