@@ -95,15 +95,8 @@ processor.run(new TypeormDatabase(), async (ctx) => {
           );
         }
       } else if (event.name === "Balances.Transfer") {
-        const { from, to } = event.args;
-        if (existingMultisigs.has(from)) {
-          transferHandler.handleNativeTransfer(
-            event.args,
-            from,
-            event.extrinsic!.hash,
-            block.header
-          );
-        } else if (existingMultisigs.has(to)) {
+        const { to } = event.args;
+        if (existingMultisigs.has(to)) {
           transferHandler.handleNativeTransfer(
             event.args,
             to,
