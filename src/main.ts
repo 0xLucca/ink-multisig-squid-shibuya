@@ -96,11 +96,17 @@ processor.run(new TypeormDatabase(), async (ctx) => {
         }
       } else if (event.name === "Balances.Transfer") {
         const { from, to } = event.args;
-        if (existingMultisigs.has(from) || existingMultisigs.has(to)) {
-          const multisigAddress = existingMultisigs.has(from) ? from : to;
+        if (existingMultisigs.has(from)) {
           transferHandler.handleNativeTransfer(
             event.args,
-            multisigAddress,
+            from,
+            event.extrinsic!.hash,
+            block.header
+          );
+        } else if (existingMultisigs.has(to)) {
+          transferHandler.handleNativeTransfer(
+            event.args,
+            to,
             event.extrinsic!.hash,
             block.header
           );
