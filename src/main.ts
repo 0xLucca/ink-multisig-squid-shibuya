@@ -60,6 +60,19 @@ processor.run(new TypeormDatabase(), async (ctx) => {
   }
   // Main loop to process the data
   for (const block of ctx.blocks) {
+    // Create hashmap of events from caller to array of contracts
+    const callerToContracts = new Map<string, string[]>();
+    for (const event of block.events) {
+      if (event.name === "Contracts.Called") {
+        const contractAddressHex = event.args.contract;
+        const caller = event.args.caller.value;
+        if (callerToContracts.has(caller)) {
+          callerToContracts.get(caller)!.push(contractAddressHex);
+        } else {
+          callerToContracts.set(caller, [contractAddressHex]);
+        }
+      }
+    }
     for (const event of block.events) {
       if (event.name === "Contracts.ContractEmitted") {
         const contractAddressHex = event.args.contract;
@@ -77,18 +90,33 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             contractAddressHex,
             event.args.data,
             event.extrinsic!.hash,
-            block.header
+            block.header,
+            callerToContracts.get(contractAddressHex) || []
           );
         }
       } else if (event.name === "Balances.Transfer") {
-        const { from, to } = event.args;
-
-        if (existingMultisigs.has(from) || existingMultisigs.has(to)) {
-          const multisigAddress = existingMultisigs.has(from) ? from : to;
-
+        const { to } = event.args;
+        if (existingMultisigs.has(to)) {
           transferHandler.handleNativeTransfer(
             event.args,
-            multisigAddress,
+            to,
+            event.extrinsic!.hash,
+            block.header
+          );
+        }
+      } else if (event.name === "Contracts.Called") {
+        const contractAddressHex = event.args.contract;
+        const messageSelector = event.call!.args.data.slice(0, 10);
+
+        if (
+          event.extrinsic?.success &&
+          (messageSelector === PSP22_TRANSFER_SELECTOR ||
+            messageSelector === PSP22_TRANSFER_FROM_SELECTOR)
+        ) {
+          transferHandler.handlePSP22Transfer(
+            contractAddressHex,
+            event.args.caller.value,
+            event.call?.args.data,
             event.extrinsic!.hash,
             block.header
           );
