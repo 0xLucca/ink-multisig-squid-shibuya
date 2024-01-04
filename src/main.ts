@@ -121,6 +121,24 @@ processor.run(new TypeormDatabase(), async (ctx) => {
             block.header
           );
         }
+      } else if (event.name === "Contracts.Called") {
+        // TODO: Check one contract with status Failed
+        const contractAddressHex = event.args.contract;
+        const messageSelector = event.call!.args.data.slice(0, 10);
+
+        if (
+          event.extrinsic?.success &&
+          (messageSelector === PSP22_TRANSFER_SELECTOR ||
+            messageSelector === PSP22_TRANSFER_FROM_SELECTOR)
+        ) {
+          transferHandler.handlePSP22Transfer(
+            contractAddressHex,
+            event.args.caller.value,
+            event.call?.args.data,
+            event.extrinsic!.hash,
+            block.header
+          );
+        }
       }
     }
   }

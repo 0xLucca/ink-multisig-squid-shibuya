@@ -55,6 +55,7 @@ export class TransferHandler {
         // This case should never happen because we already checked the selector
         return;
     }
+
     const to = ss58.codec(SS58_PREFIX).encode(message.to.toString());
 
     if (existingMultisigs.has(to)) {
